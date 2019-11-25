@@ -2,7 +2,7 @@
 
 PDF viewer for web.
 
-### Example
+### Usage
 ````
 import {PDFViewer} from 'web-pdf-viewer';
 

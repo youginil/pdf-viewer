@@ -14,7 +14,8 @@ import {Log, LOG_LEVEL} from "./log";
 import "./style.scss";
 
 const pkg = require('../package.json');
-const pdfjsLib = require('pdfjs-dist/webpack');
+const pdfjsLib = require('pdfjs-dist/build/pdf.js');
+require('pdfjs-dist/build/pdf.worker.entry');
 
 const PAGE_GAP = 10;
 const DPR = window.devicePixelRatio || 1;

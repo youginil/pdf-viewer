@@ -1,4 +1,4 @@
-const pdfjsLib = require('pdfjs-dist/webpack');
+const pdfjsLib = require('pdfjs-dist/build/pdf.js');
 import {Log} from './log';
 
 type Highlight = {
