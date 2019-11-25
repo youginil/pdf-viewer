@@ -1,4 +1,3 @@
-const pdfjsLib = require('pdfjs-dist/build/pdf.js');
 import {Log} from './log';
 
 type Highlight = {
@@ -9,6 +8,7 @@ type Highlight = {
 };
 
 export class PDFPage {
+    private readonly pdfjs;
     private readonly pageNum: number;
     // @ts-ignore
     private pdfPage: PDFPageProxy;
@@ -38,6 +38,7 @@ export class PDFPage {
     private destroyed: Boolean = false;
 
     constructor({
+                    pdfjs,
                     pageNum,
                     pdfPage,
                     width,
@@ -46,6 +47,7 @@ export class PDFPage {
                     pageResizeCallback,
                     log
                 }) {
+        this.pdfjs = pdfjs;
         this.pageNum = pageNum;
         this.pdfPage = pdfPage;
         this.width = width;
@@ -138,7 +140,7 @@ export class PDFPage {
                 const textContentStream = this.pdfPage.streamTextContent({
                     normalizeWhitespace: true,
                 });
-                this.textRenderTask = pdfjsLib.renderTextLayer({
+                this.textRenderTask = this.pdfjs.renderTextLayer({
                     textContent: null,
                     textContentStream,
                     container: this.textElement,

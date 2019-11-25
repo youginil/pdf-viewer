@@ -14,8 +14,7 @@ import {Log, LOG_LEVEL} from "./log";
 import "./style.scss";
 
 const pkg = require('../package.json');
-const pdfjsLib = require('pdfjs-dist/build/pdf.js');
-require('pdfjs-dist/build/pdf.worker.entry');
+const pdfjs = require('pdfjs-dist/webpack.js');
 
 const PAGE_GAP = 10;
 const DPR = window.devicePixelRatio || 1;
@@ -203,7 +202,7 @@ export class PDFViewer {
     }
 
     private getDocument(cfg) {
-        this.pdfTask = pdfjsLib.getDocument(cfg);
+        this.pdfTask = pdfjs.getDocument(cfg);
         this.log.mark('getdoc');
         this.pdfTask.promise.then((dc) => {
             this.log.measure('getdoc', 'get document');
@@ -227,6 +226,7 @@ export class PDFViewer {
                     this.firstPageOriginHeight = vp.viewBox[3];
                     for (let i = 1; i <= numPages; i++) {
                         const p = new PDFPage({
+                            pdfjs,
                             pageNum: i,
                             pdfPage: i === 1 ? page : null,
                             width: this.width,

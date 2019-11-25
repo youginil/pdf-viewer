@@ -16,7 +16,8 @@ module.exports = {
   module: {
     rules: [
       {test: /\.tsx?$/, use: ["ts-loader"], exclude: /node_modules/},
-      {test: /\.scss$/, use: ["style-loader", "css-loader", "sass-loader"]}
+      {test: /\.scss$/, use: ["style-loader", "css-loader", "sass-loader"]},
+      // {test: /\.worker\.js$/, use: ["worker-loader"]}
     ]
   },
   devServer: {
