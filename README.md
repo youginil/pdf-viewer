@@ -3,10 +3,15 @@
 PDF viewer for web.
 
 ### Usage
+###### Step1
+复制node_modules/web-pdf-viewer/cmaps目录到项目的公共目录中
+###### Step2
 ````
 import {PDFViewer} from 'web-pdf-viewer';
 
-const pv = new PDFViewer({...});
+const pv = new PDFViewer({
+  cmaps: {Step1中cmaps的url路径}
+});
 pv.addEventListener('load', (e) => {...});
 pv.destroy();
 ````
