@@ -1,33 +1,35 @@
-import {Td, TdRange} from "./table";
-import log from "./log";
+import {Log} from "./log";
 
-export const EDITOR_EVENTS = {
-    CELL_FOCUS: 'cellfocus',
-    CELL_BLUR: 'cellblur',
-    MOUSE_MOVE: 'mousemove'
+export const EVENTS = {
+    LOAD: 'load',
+    PAGE_CHANGE: 'pagechange',
+    HIGHLIGHT_CLICK: 'highlightclick',
+    PAGE_RESIZE: 'pageresize'
 };
 
-const eventNames = Object.keys(EDITOR_EVENTS).map((k) => {
-    return EDITOR_EVENTS[k];
+const eventNames = Object.keys(EVENTS).map((k) => {
+    return EVENTS[k];
 });
 
-export class EditorEventHandler {
+export class PVEventHandler {
     private events: Map<string, Array<Function>>;
+    private log: Log;
 
-    constructor() {
+    constructor(log: Log) {
         this.events = new Map<string, Array<Function>>();
         eventNames.forEach((n) => {
             this.events.set(n, []);
         });
+        this.log = log;
     }
 
     addHandler(name: string, handler: Function) {
         if (!this.events.has(name)) {
-            log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
+            this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return;
         }
         if (typeof handler !== 'function') {
-            log.warn(`Invalid event handler`);
+            this.log.warn(`Invalid event handler`);
             return;
         }
         this.events.get(name).push(handler);
@@ -35,11 +37,11 @@ export class EditorEventHandler {
 
     removeHandler(name: string, handler: Function) {
         if (!this.events.has(name)) {
-            log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
+            this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return;
         }
         if (typeof handler !== 'function') {
-            log.warn(`Invalid event handler`);
+            this.log.warn(`Invalid event handler`);
             return;
         }
         const hs = this.events.get(name);
@@ -49,6 +51,14 @@ export class EditorEventHandler {
         }
     }
 
+    hasListener(name: string): boolean {
+        if (!this.events.has(name)) {
+            this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
+            return false;
+        }
+        return this.events.get(name).length > 0;
+    }
+
     trigger(name: string, value: any) {
         this.events.get(name).forEach((h) => {
             h(value);
@@ -56,37 +66,42 @@ export class EditorEventHandler {
     }
 }
 
-export class TECellFocusEvent {
-    row: TdRange;
-    col: TdRange;
-
-    constructor(row: TdRange, col: TdRange) {
-        this.row = row;
-        this.col = col;
+export class PVLoadEvent {
+    constructor() {
     }
 }
 
-export class TECellBlurEvent {
-    row: TdRange;
-    col: TdRange;
+export class PVPageChangeEvent {
+    page: number;
+    totalPages: number;
 
-    constructor(row: TdRange, col: TdRange) {
-        this.row = row;
-        this.col = col;
+    constructor(page: number, totalPages: number) {
+        this.page = page;
+        this.totalPages = totalPages;
     }
 }
 
-type mouseMoveParam = {
-    offsetX: number
-    offsetY: number
+type highlightList = Array<{page: number, id: Symbol}>;
+
+export class PVHighlightClickEvent {
+    highlights: highlightList;
+
+    constructor(highlights: highlightList) {
+        this.highlights = highlights;
+    }
 }
 
-export class TEMouseMoveEvent {
-    offsetX: number;
-    offsetY: number;
+type pageSizes = {
+    [prop: number]: {
+        w: number
+        h: number
+    }
+};
 
-    constructor(data: mouseMoveParam) {
-        this.offsetX = data.offsetX;
-        this.offsetY = data.offsetY;
+export class PVPageResizeEvent {
+    pageSizes: pageSizes;
+
+    constructor(pageSizes: pageSizes) {
+        this.pageSizes = pageSizes;
     }
 }

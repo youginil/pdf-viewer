@@ -1,0 +1,55 @@
+.pjs-pdf-viewer {
+  height: 100%;
+  direction: ltr;
+
+  * {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .pdf-page {
+    display: inline-block;
+    background-color: #fff;
+    position: relative;
+
+    &:not(:nth-child(2)) {
+      margin-top: 10px;
+    }
+  }
+
+  .text-layer {
+    z-index: 2;
+    opacity: .2;
+    overflow: hidden;
+
+    ::selection {
+      background: blue;
+    }
+
+    * {
+      position: absolute;
+      white-space: pre;
+      transform-origin: 0 0;
+      line-height: 1;
+      color: transparent;
+    }
+  }
+
+  .pdf-highlight {
+    background: yellow;
+    opacity: .3;
+    transition: all .3s ease-in-out;
+  }
+
+  .pdf-highlight-focus {
+    box-shadow: 0 0 16px 1px #000000;
+  }
+
+  .pdf-loading {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+  }
+}
