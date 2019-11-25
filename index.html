@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Hello PDFViewer</title>
+    <style>
+        * {
+            margin: 0;
+            border: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html, body {
+            height: 100%;
+        }
+        button {
+            padding: 6px 8px;
+            background-color: #ccc;
+            margin: 4px 3px;
+        }
+        #page-wrapper {
+            height: 100%;
+            display: flex;
+        }
+        #pv {
+            width: 800px;
+            height: 100%;
+            flex-shrink: 0;
+        }
+        #ops {
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+    </style>
+    <script src="viewer.js"></script>
+</head>
+<body>
+<div id="page-wrapper">
+    <div id="pv"></div>
+    <div id="ops">
+        <h1>Methods</h1>
+        <button type="button" onclick="actions.getPDFInfo()">Get PDF info</button>
+        <button type="button" onclick="actions.scroll()">Scroll</button>
+        <button type="button" onclick="actions.highlight()">Highlight</button>
+        <button type="button" onclick="actions.removeHighlight()">Remove highlight</button>
+        <button type="button" onclick="actions.highlightFocus()">Highlight focus</button>
+        <button type="button" onclick="actions.highlightBlur()">Highlight blur</button>
+        <button type="button" onclick="actions.renderPage()">Render page</button>
+        <div id="tmp-page-container"></div>
+        <button type="button" onclick="actions.rerender()">Rerender on size change</button>
+        <button type="button" onclick="actions.destroy()">Destroy</button>
+        <button type="button" onclick="actions.reload()">Reload</button>
+        <h1>Events</h1>
+        <button type="button" onclick="actions.addPageChangeListener()">+ page change</button>
+        <button type="button" onclick="actions.removePageChangeListener()">- page change</button>
+        <button type="button" onclick="actions.addHighlightClickListener()">+ highlight click</button>
+        <button type="button" onclick="actions.removeHighlightClickListener()">- highlight click</button>
+        <button type="button" onclick="actions.addPageResizeListener()">+ page resize</button>
+        <button type="button" onclick="actions.removePageResizeListener()">- page resize</button>
+    </div>
+</div>
+<script>
+var container = document.getElementById('pv');
+
+function newPDF() {
+  return new pv.PDFViewer({
+    container: container,
+    url: '/sample.pdf',
+    cmaps: '/cmaps',
+    isRenderText: true,
+    debug: true
+  });
+}
+var pdf = newPDF();
+
+pdf.addEventListener('pageresize', function (e) {
+  console.log('Event: pageresize', e);
+});
+
+var events = {
+  load: function () {
+    console.log('Event: load');
+  },
+  pagechange: function (e) {
+    console.log('Event: pagechange', e);
+  },
+  highlightclick: function (e) {
+    console.log('Event: highlight click', e);
+  },
+  pageresize: function (e) {
+    console.log('Event: pageresize', e);
+  }
+};
+
+pdf.addEventListener('load', events.load);
+
+var actions = {
+  getPDFInfo: function () {
+    var info = pdf.getPDFInfo();
+    console.log(info);
+  },
+  scroll: function () {
+    pdf.scrollTo(5, 300, function () {
+      console.log('滚动完成');
+    });
+  },
+  hid: null,
+  highlight() {
+    actions.hid = pdf.highlight(1, 200, 200, 100, 100);
+  },
+  removeHighlight() {
+    pdf.removeHighlight(1, actions.hid);
+  },
+  highlightFocus() {
+    pdf.highlightFocus(1, actions.hid);
+  },
+  highlightBlur() {
+    pdf.highlightBlur(1, actions.hid);
+  },
+  renderPage() {
+    pdf.renderPage(1, 200, function(canvas) {
+      document.getElementById('tmp-page-container').appendChild(canvas);
+    });
+  },
+  size: 800,
+  rerender() {
+    var size = actions.size === 800 ? 500 : 800;
+    actions.size = size;
+    container.style.width = size + 'px';
+    pdf.rerender();
+  },
+  addPageChangeListener() {
+    pdf.addEventListener('pagechange', events.pagechange);
+  },
+  removePageChangeListener() {
+    pdf.removeEventListener('pagechange', events.pagechange);
+  },
+  addHighlightClickListener() {
+    pdf.addEventListener('highlightclick', events.highlightclick);
+  },
+  removeHighlightClickListener() {
+    pdf.removeEventListener('highlightclick', events.highlightclick);
+  },
+  addPageResizeListener() {
+    pdf.addEventListener('pageresize', events.pageresize);
+  },
+  removePageResizeListener() {
+    pdf.removeEventListener('pageresize', events.pageresize);
+  },
+  destroy() {
+    pdf.destroy();
+  },
+  reload() {
+    pdf = newPDF();
+  }
+};
+</script>
+</body>
+</html>
