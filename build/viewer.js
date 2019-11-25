@@ -27562,42 +27562,6 @@ function () {
 
 /***/ }),
 
-/***/ "./node_modules/pdfjs-dist/webpack.js":
-/*!********************************************!*\
-  !*** ./node_modules/pdfjs-dist/webpack.js ***!
-  \********************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* Copyright 2017 Mozilla Foundation
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
-var pdfjs = __webpack_require__(/*! ./build/pdf.js */ "./node_modules/pdfjs-dist/build/pdf.js");
-var PdfjsWorker = __webpack_require__(/*! worker-loader!./build/pdf.worker.js */ "./node_modules/worker-loader/dist/cjs.js!./node_modules/pdfjs-dist/build/pdf.worker.js");
-
-if (typeof window !== 'undefined' && 'Worker' in window) {
-  pdfjs.GlobalWorkerOptions.workerPort = new PdfjsWorker();
-}
-
-module.exports = pdfjs;
-
-
-/***/ }),
-
 /***/ "./node_modules/process/browser.js":
 /*!*****************************************!*\
   !*** ./node_modules/process/browser.js ***!
@@ -29131,19 +29095,6 @@ module.exports = function(module) {
 
 /***/ }),
 
-/***/ "./node_modules/worker-loader/dist/cjs.js!./node_modules/pdfjs-dist/build/pdf.worker.js":
-/*!**********************************************************************************************!*\
-  !*** ./node_modules/worker-loader/dist/cjs.js!./node_modules/pdfjs-dist/build/pdf.worker.js ***!
-  \**********************************************************************************************/
-/*! no static exports found */
-/***/ (function(module, exports, __webpack_require__) {
-
-module.exports = function() {
-  return new Worker(__webpack_require__.p + "98131d8aec347919142b.worker.js");
-};
-
-/***/ }),
-
 /***/ "./package.json":
 /*!**********************!*\
   !*** ./package.json ***!
@@ -29883,13 +29834,7 @@ var utils_1 = __webpack_require__(/*! ./utils */ "./src/utils.ts");
 var log_1 = __webpack_require__(/*! ./log */ "./src/log.ts");
 __webpack_require__(/*! ./style.scss */ "./src/style.scss");
 var pkg = __webpack_require__(/*! ../package.json */ "./package.json");
-var pdfjs = __webpack_require__(/*! pdfjs-dist/webpack.js */ "./node_modules/pdfjs-dist/webpack.js");
-// var PdfjsWorker = require('worker-loader!pdfjs-dist/build/pdf.worker.js');
-// console.log(PdfjsWorker);
-//
-// if (typeof window !== 'undefined' && 'Worker' in window) {
-//     pdfjs.GlobalWorkerOptions.workerPort = new PdfjsWorker();
-// }
+exports.pdfjs = __webpack_require__(/*! pdfjs-dist/build/pdf.js */ "./node_modules/pdfjs-dist/build/pdf.js");
 var PAGE_GAP = 10;
 var DPR = window.devicePixelRatio || 1;
 var CLASS_NAME = 'pjs-pdf-viewer';
@@ -30054,7 +29999,7 @@ var PDFViewer = /** @class */ (function () {
     };
     PDFViewer.prototype.getDocument = function (cfg) {
         var _this = this;
-        this.pdfTask = pdfjs.getDocument(cfg);
+        this.pdfTask = exports.pdfjs.getDocument(cfg);
         this.log.mark('getdoc');
         this.pdfTask.promise.then(function (dc) {
             _this.log.measure('getdoc', 'get document');
@@ -30078,7 +30023,7 @@ var PDFViewer = /** @class */ (function () {
                 _this.firstPageOriginHeight = vp.viewBox[3];
                 for (var i = 1; i <= numPages; i++) {
                     var p = new page_1.PDFPage({
-                        pdfjs: pdfjs,
+                        pdfjs: exports.pdfjs,
                         pageNum: i,
                         pdfPage: i === 1 ? page : null,
                         width: _this.width,
