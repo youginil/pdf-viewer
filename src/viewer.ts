@@ -397,7 +397,6 @@ export class PDFViewer {
         this.elem.style.width = `${width}px`;
         Promise.resolve().then(() => {
             const tmpWidth = this.pageHelper.clientWidth;
-            console.log(tmpWidth, this.width);
             if (this.width !== tmpWidth) {
                 this.width = tmpWidth;
                 const pageSizes = {};
