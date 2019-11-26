@@ -57,8 +57,6 @@
         <button type="button" onclick="actions.removePageChangeListener()">- page change</button>
         <button type="button" onclick="actions.addHighlightClickListener()">+ highlight click</button>
         <button type="button" onclick="actions.removeHighlightClickListener()">- highlight click</button>
-        <button type="button" onclick="actions.addPageResizeListener()">+ page resize</button>
-        <button type="button" onclick="actions.removePageResizeListener()">- page resize</button>
     </div>
 </div>
 <script>
@@ -88,9 +86,6 @@ var events = {
   },
   highlightclick: function (e) {
     console.log('Event: highlight click', e);
-  },
-  pageresize: function (e) {
-    console.log('Event: pageresize', e);
   }
 };
 
@@ -139,12 +134,6 @@ var actions = {
   },
   removeHighlightClickListener: function() {
     pdf.removeEventListener('highlightclick', events.highlightclick);
-  },
-  addPageResizeListener: function() {
-    pdf.addEventListener('pageresize', events.pageresize);
-  },
-  removePageResizeListener: function() {
-    pdf.removeEventListener('pageresize', events.pageresize);
   },
   destroy: function() {
     pdf.destroy();

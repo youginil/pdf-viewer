@@ -26,7 +26,7 @@ module.exports = env => {
       port: 9000,
       disableHostCheck: true,
       filename: 'viewer.js',
-      // host: '10.10.24.248'
+      host: '10.10.24.248'
     },
     watchOptions: {
       ignored: ['node_modules']

@@ -3,7 +3,7 @@ function getEventPath(e) {
         return e.path;
     }
     const path = [e.target];
-    let elem = e.target.parentElement;
+    let elem = e.target;
     while (elem.parentElement !== null) {
         path.push(elem.parentElement);
         elem = elem.parentElement;

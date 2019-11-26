@@ -1,5 +1,4 @@
 import {Log} from "./log";
-import 'core-js';
 
 export const EVENTS = {
     LOAD: 'load',

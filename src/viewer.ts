@@ -1,4 +1,3 @@
-import 'core-js';
 import {
     EVENTS,
     PVEventHandler,
@@ -97,7 +96,7 @@ export class PDFViewer {
             this.renderTimer = null;
         }
         this.renderTimer = setTimeout(() => {
-            this.render();
+            this._render();
         }, 100);
     };
     private readonly log: Log;
@@ -133,10 +132,10 @@ export class PDFViewer {
         };
         if (option.url) {
             cfg['url'] = option.url;
-            this.getDocument(cfg);
+            this._getDocument(cfg);
         } else if (option.data) {
             cfg['data'] = option.data;
-            this.getDocument(cfg);
+            this._getDocument(cfg);
         } else if (option.file) {
             if (!(option.file instanceof File)) {
                 this.log.error('Invalid param "file"');
@@ -146,7 +145,7 @@ export class PDFViewer {
             fr.onload = () => {
                 // @ts-ignore
                 cfg['data'] = new Uint8Array(fr.result);
-                this.getDocument(cfg);
+                this._getDocument(cfg);
             };
             fr.onerror = () => {
                 this.log.error('The param "file" cannot be loaded');
@@ -156,11 +155,11 @@ export class PDFViewer {
         }
     }
 
-    private handlePageResize(ps) {
+    private _handlePageResize(ps) {
         this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(ps));
     }
 
-    private render(force: boolean = false) {
+    private _render(force: boolean = false) {
         if (!this.ready || !this.elem || this.pages.length === 0) {
             return;
         }
@@ -205,7 +204,7 @@ export class PDFViewer {
         }
     }
 
-    private getDocument(cfg) {
+    private _getDocument(cfg) {
         this.pdfTask = pdfjs.getDocument(cfg);
         this.log.mark('getdoc');
         this.pdfTask.promise.then((dc) => {
@@ -236,7 +235,7 @@ export class PDFViewer {
                             width: this.width,
                             height: this.width * this.firstPageOriginHeight / this.firstPageOriginWidth,
                             isRenderText: this.isRenderText,
-                            pageResizeCallback: this.handlePageResize.bind(this),
+                            pageResizeCallback: this._handlePageResize.bind(this),
                             log: this.log
                         });
                         this.pages.push(p);
@@ -265,7 +264,7 @@ export class PDFViewer {
                             this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(pageSizes));
                         })
                         .then(() => {
-                            this.render();
+                            this._render();
                         });
                 });
         });
@@ -407,7 +406,7 @@ export class PDFViewer {
                         h: p.getHeight()
                     };
                 });
-                this.render(true);
+                this._render(true);
                 this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(pageSizes));
             }
         });

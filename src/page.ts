@@ -1,5 +1,4 @@
 import {Log} from './log';
-import 'core-js';
 
 type Highlight = {
     elem: HTMLElement | null
@@ -161,6 +160,15 @@ export class PDFPage {
         } else {
             p2 = Promise.resolve();
         }
+        // 如果强制重新渲染，就把高亮清掉
+        if (force) {
+            this.highlights.forEach((hd) => {
+                if (hd.elem) {
+                    hd.elem.remove();
+                    hd.elem = null;
+                }
+            });
+        }
         if (needRender) {
             this.log.mark(`RP${this.pageNum}`);
         }
@@ -175,9 +183,7 @@ export class PDFPage {
                 this.pageElement.setAttribute('data-load', 'true');
                 /* render highlight */
                 this.highlights.forEach((hl, id) => {
-                    if (!hl.elem) {
-                        this._highlight(id);
-                    }
+                    this._highlight(id);
                 });
             })
             .catch((e) => {
