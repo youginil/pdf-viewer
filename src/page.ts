@@ -1,4 +1,5 @@
 import {Log} from './log';
+import 'core-js';
 
 type Highlight = {
     elem: HTMLElement | null
@@ -68,15 +69,14 @@ export class PDFPage {
         return this.pageElement;
     }
 
-    resize(w: number, h: number) {
-        if (w !== null && w !== undefined) {
-            this.width = w;
-            this.pageElement.style.width = `${w}px`;
+    resize(w: number) {
+        if (this.width === w) {
+            return;
         }
-        if (h !== null && h !== undefined) {
-            this.height = h;
-            this.pageElement.style.height = `${h}px`;
-        }
+        this.height *= w / this.width;
+        this.width = w;
+        this.pageElement.style.width = `${this.width}px`;
+        this.pageElement.style.height = `${this.height}px`;
     }
 
     private _render(force: boolean) {
@@ -86,10 +86,11 @@ export class PDFPage {
             this.originWidth = vs.w;
             this.originHeight = vs.h;
             if (this.originHeight > 0 && this.originWidth / this.originHeight !== this.width / this.height) {
+                this.height = this.width * this.originHeight / this.originWidth;
                 this.pageResizeCallback({
                     [this.pageNum]: {
                         w: this.width,
-                        h: this.width / this.originWidth * this.originHeight
+                        h: this.height
                     }
                 });
             }
@@ -98,14 +99,17 @@ export class PDFPage {
         this.height = this.originHeight * scale;
         this.pageElement.style.height = this.height + 'px';
         const vp = this.pdfPage.getViewport({scale: scale * devicePixelRatio});
+        // 是否需要渲染
+        let needRender = false;
         /* render canvas layer */
         let p1;
         if (force && this.canvas) {
             this.canvas.remove();
-            delete this.canvas;
-            delete this.canvasCtx;
+            this.canvas = null;
+            this.canvasCtx = null;
         }
         if (!this.canvas) {
+            needRender = true;
             this.canvas = document.createElement('canvas');
             this.canvas.style.position = 'absolute';
             this.canvas.style.left = '0';
@@ -127,9 +131,10 @@ export class PDFPage {
         if (this.isRenderText) {
             if (force && this.textElement) {
                 this.textElement.remove();
-                delete this.textElement;
+                this.textElement = null;
             }
             if (!this.textElement) {
+                needRender = true;
                 this.textElement = document.createElement('div');
                 this.textElement.style.position = 'absolute';
                 this.textElement.style.top = '0';
@@ -156,6 +161,9 @@ export class PDFPage {
         } else {
             p2 = Promise.resolve();
         }
+        if (needRender) {
+            this.log.mark(`RP${this.pageNum}`);
+        }
         /* all render done */
         Promise.all([p1, p2])
             .then(() => {
@@ -173,14 +181,15 @@ export class PDFPage {
                 });
             })
             .catch((e) => {
-                /**/
+                this.log.error(`Page render fail. page: ${this.pageNum}. ${e}`);
             })
             .finally(() => {
-                if (this.pdfPage) {
-                    this.pdfPage.cleanup();
+                if (needRender) {
+                    this.log.measure(`RP${this.pageNum}`, `Render page ${this.pageNum}`);
+                    this.log.removeMark(`RP${this.pageNum}`);
                 }
-                delete this.canvasRenderTask;
-                delete this.textRenderTask;
+                this.canvasRenderTask = null;
+                this.textRenderTask = null;
                 if (this.destroyed) {
                     this.destroy();
                 }
@@ -204,10 +213,6 @@ export class PDFPage {
                     this._render(force);
                 });
         }
-    }
-
-    getWidth() {
-        return this.width;
     }
 
     getHeight() {
@@ -262,7 +267,7 @@ export class PDFPage {
         const hd = this.highlights.get(id);
         if (hd.elem) {
             hd.elem.remove();
-            delete hd.elem;
+            hd.elem = null;
         }
         if (del) {
             this.highlights.delete(id);
@@ -281,7 +286,9 @@ export class PDFPage {
             return;
         }
         hd.highlightFocusClass = highlightFocusClass;
-        hd.elem.classList.add(highlightFocusClass);
+        if (hd.elem) {
+            hd.elem.classList.add(highlightFocusClass);
+        }
     }
 
     highlightBlur(id: symbol) {
@@ -289,7 +296,9 @@ export class PDFPage {
         if (!hd) {
             return;
         }
-        hd.elem.classList.remove(hd.highlightFocusClass);
+        if (hd.elem) {
+            hd.elem.classList.remove(hd.highlightFocusClass);
+        }
     }
 
     getHighlightsByPoint(x: number, y: number): Array<{ page: number, id: symbol }> {
@@ -311,38 +320,38 @@ export class PDFPage {
             return;
         }
         this.canvas.remove();
-        delete this.canvas;
-        delete this.canvasCtx;
+        this.canvas = null;
+        this.canvasCtx = null;
         if (this.isRenderText) {
             this.textElement.remove();
-            delete this.textElement;
+            this.textElement = null;
         }
         this.loadingElement.style.display = 'block';
         this.pageElement.removeAttribute('data-load');
         this.highlights.forEach((hl) => {
             if (hl.elem) {
                 hl.elem.remove();
-                delete hl.elem;
+                hl.elem = null;
             }
         });
     }
 
     destroy() {
         this.pageElement.remove();
-        delete this.pageElement;
-        delete this.canvas;
-        delete this.canvasCtx;
-        delete this.pageElement;
-        delete this.textElement;
+        this.pageElement = null;
+        this.canvas = null;
+        this.canvasCtx = null;
+        this.pageElement = null;
+        this.textElement = null;
         if (this.canvasRenderTask) {
-            delete this.canvasRenderTask;
+            this.canvasRenderTask = null;
         }
         if (this.textRenderTask) {
-            delete this.textRenderTask;
+            this.textRenderTask = null;
         }
         if (this.pdfPage) {
             this.pdfPage.cleanup();
-            delete this.pdfPage;
+            this.pdfPage = null;
         }
     }
 }

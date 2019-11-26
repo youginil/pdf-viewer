@@ -1,4 +1,5 @@
 # pdf-viewer
+![npm](https://img.shields.io/npm/v/web-pdf-viewer)
 
 PDF viewer for web.
 
@@ -46,5 +47,33 @@ borderStyle         | String                    | N        | 边框颜色
 ### 事件
 * `load`PDFViewer加载数据完成
 * `pagechange`滚动时页数变化
+````
+class PVPageChangeEvent {
+    page: number;
+    totalPages: number;
+}
+````
 * `highlightclick`点击高亮区域
-* `pageresize`页面尺寸变化 ({[pageNumber]: {w: 100, h: 100}}) => {}
+````
+type highlightList = Array<{page: number, id: Symbol}>;
+
+class PVHighlightClickEvent {
+    highlights: highlightList;
+}
+````
+* `pageresize`页面尺寸变化
+````
+type pageSizes = {
+    [prop: number]: {
+        w: number
+        h: number
+    }
+};
+
+class PVPageResizeEvent {
+    pageSizes: pageSizes;
+}
+````
+
+### Changelog
+[changelog](https://github.com/yinliguo/pdf-viewer/blob/master/CHANGELOG.md)

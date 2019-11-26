@@ -1,10 +1,9 @@
 # Changelog
 
 ### v1.0.9
-* 修改引入方式。直接引入npm包，无须引入css文件和设置container的类名pjs-pdf-viewer，只需要引入这个包即可。在实例化时需要传递cmaps参数
+* 修改引入方式。直接引入npm包，无须引入css文件和设置container的类名pjs-pdf-viewer，只需要引入这个包即可。建议在实例化时需要传递cmaps参数
 * 规范事件名。`onload`改为`load`，`onpagechange`改为`pagechange`；传给回调函数的参数也改成SomeEvent对象，与原生事件语法一致且具有可扩展性
-* 去掉PDFViewer.prototype.resize方法（使用rerender替换）
-* 加入PDFViewer.prototype.rerender方法，可用于容器尺寸改变后重新渲染
+* 修改PDFViewer.prototype.resize(width?: number)参数，去掉了百分比的支持，参数为可选，不传则表示适配container的宽度
 
 ### v1.0.8
 * 调整容器宽度的方式由修改container.style.width变为接口PDFViewer.prototype.resize(width: Number|String)，可以接收百分比或数字（像素）

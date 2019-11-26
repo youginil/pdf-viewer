@@ -18,7 +18,6 @@ class RafAnimation {
     private raf;
 
     constructor(start, end, duration: number, cb: (v: number) => void, endCb: Function) {
-        console.log('raf');
         this.start = start;
         this.end = end;
         this.duration = duration;
@@ -38,7 +37,7 @@ class RafAnimation {
                 this.endCb();
             }
         } else {
-            this.raf = window.requestAnimationFrame(() => {
+            this.raf = requestAnimationFrame(() => {
                 this.stepByStep();
             });
         }

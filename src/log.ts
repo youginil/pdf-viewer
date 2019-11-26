@@ -1,3 +1,5 @@
+import 'core-js';
+
 enum LOG_LEVEL {
     DEBUG,
     INFO,

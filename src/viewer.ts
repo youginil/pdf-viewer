@@ -1,3 +1,4 @@
+import 'core-js';
 import {
     EVENTS,
     PVEventHandler,
@@ -15,6 +16,11 @@ import "./style.scss";
 
 const pkg = require('../package.json');
 export const pdfjs = require('pdfjs-dist/build/pdf.js');
+// @ts-ignore
+if (IS_DEV) {
+    const PdfjsWorker = require('worker-loader!pdfjs-dist/build/pdf.worker.js');
+    pdfjs.GlobalWorkerOptions.workerPort = new PdfjsWorker();
+}
 
 const PAGE_GAP = 10;
 const DPR = window.devicePixelRatio || 1;
@@ -52,7 +58,6 @@ export class PDFViewer {
 
     private renderTimer = null;
     private scrollAnimation: Animation = null;
-    private resizeTimer = null;
 
     private ready: boolean = false;
     // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
@@ -126,7 +131,6 @@ export class PDFViewer {
             cMapUrl: option.cmaps,
             cMapPacked: true,
         };
-        let logLevel = this.debug ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN;
         if (option.url) {
             cfg['url'] = option.url;
             this.getDocument(cfg);
@@ -170,8 +174,8 @@ export class PDFViewer {
             const pageHeight = pageElem.clientHeight;
             const tmpPageTop = scrollTop - prevPageHeight;
             const tmpGap = pageIdx === 0 ? 0 : PAGE_GAP;// 加上页面的margin-top，这个margin很少变动，所以写死
-            if (tmpPageTop < vh + 3 * pageHeight && tmpPageTop > -vh - 3 * pageHeight) {
-                // 页面顶部在可视上下浮动3个页面高度的范围内都渲染
+            if (tmpPageTop < vh + 5 * pageHeight && tmpPageTop > -vh - 5 * pageHeight) {
+                // 页面顶部在可视上下浮动5个页面高度的范围内都渲染
                 page.render(this.dc, force);
                 // 哪个页面在container中占的空间大就使用哪个页面作为当前页面，如果相同，页码小优先
                 let tmpCurrentPage = 0;
@@ -247,19 +251,21 @@ export class PDFViewer {
                     const height = this.width / this.firstPageOriginWidth * this.firstPageOriginHeight;
                     const pageSizes = {};
                     this.pages.forEach((p, pi) => {
-                        p.resize(this.width, height);
+                        p.resize(this.width);
                         pageSizes[pi + 1] = {
                             w: this.width,
                             h: height
                         };
                     });
-                    this.render();
                     Promise.resolve()
                         .then(() => {
                             this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent());
                         })
                         .then(() => {
                             this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(pageSizes));
+                        })
+                        .then(() => {
+                            this.render();
                         });
                 });
         });
@@ -381,32 +387,31 @@ export class PDFViewer {
         });
     }
 
-    rerender(): PDFViewer {
+    resize(width?: number): PDFViewer {
         if (this.firstPageOriginWidth === 0 || !this.elem) {
             return this;
         }
-        if (this.resizeTimer) {
-            clearTimeout(this.resizeTimer);
+        if (isUndef(width)) {
+            width = this.elem.parentElement.clientWidth;
         }
-        this.resizeTimer = setTimeout(() => {
-            this.width = this.pageHelper.clientWidth;
-            const height = this.width / this.firstPageOriginWidth * this.firstPageOriginHeight;
-            this.pages.forEach((page) => {
-                page.resize(this.width, height);
-            });
-            this.render(true);
-            this.resizeTimer = null;
-            Promise.resolve().then(() => {
+        this.elem.style.width = `${width}px`;
+        Promise.resolve().then(() => {
+            const tmpWidth = this.pageHelper.clientWidth;
+            console.log(tmpWidth, this.width);
+            if (this.width !== tmpWidth) {
+                this.width = tmpWidth;
                 const pageSizes = {};
                 this.pages.forEach((p, i) => {
+                    p.resize(this.width);
                     pageSizes[i + 1] = {
-                        w: p.getWidth(),
+                        w: tmpWidth,
                         h: p.getHeight()
                     };
                 });
+                this.render(true);
                 this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(pageSizes));
-            });
-        }, 400);
+            }
+        });
         return this;
     }
 
@@ -414,9 +419,6 @@ export class PDFViewer {
         this.destroyed = true;
         if (this.renderTimer) {
             clearTimeout(this.renderTimer);
-        }
-        if (this.resizeTimer) {
-            clearTimeout(this.resizeTimer);
         }
         // 销毁页面
         this.pages.forEach((page) => {
