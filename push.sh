@@ -8,7 +8,7 @@ if [ -z "${repo_diff}" ]; then
   exit
 fi
 git status
-echo "Enter the git commit message"
+echo "👽 Enter the git commit message:"
 read -r
 commit_message="$REPLY"
 git commit -a -m "${commit_message}"
