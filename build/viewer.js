@@ -29102,7 +29102,7 @@ module.exports = function(module) {
 /*! exports provided: name, version, description, main, scripts, repository, keywords, author, license, dependencies, devDependencies, default */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"web-pdf-viewer\",\"version\":\"1.0.9\",\"description\":\"pdf viewer for web base on pdf.js\",\"main\":\"index.js\",\"scripts\":{\"build\":\"./node_modules/.bin/webpack --env.production \",\"dev\":\"./node_modules/.bin/webpack-dev-server --inline --env.production=false\"},\"repository\":{\"type\":\"git\",\"url\":\"git@github.com:yinliguo/pdf-viewer.git\"},\"keywords\":[\"pdf\"],\"author\":\"yinliguo\",\"license\":\"MIT\",\"dependencies\":{\"pdfjs-dist\":\"^2.2.228\"},\"devDependencies\":{\"css-loader\":\"^3.2.0\",\"node-sass\":\"^4.13.0\",\"sass-loader\":\"^8.0.0\",\"style-loader\":\"^1.0.0\",\"ts-loader\":\"^6.2.1\",\"typescript\":\"^3.7.2\",\"webpack\":\"^4.41.2\",\"webpack-cli\":\"^3.3.10\",\"webpack-dev-server\":\"^3.9.0\"}}");
+module.exports = JSON.parse("{\"name\":\"web-pdf-viewer\",\"version\":\"1.1.1\",\"description\":\"pdf viewer for web base on pdf.js\",\"main\":\"index.js\",\"scripts\":{\"build\":\"./node_modules/.bin/webpack --env.production \",\"dev\":\"./node_modules/.bin/webpack-dev-server --inline --env.production=false\"},\"repository\":{\"type\":\"git\",\"url\":\"git@github.com:yinliguo/pdf-viewer.git\"},\"keywords\":[\"pdf\"],\"author\":\"yinliguo\",\"license\":\"MIT\",\"dependencies\":{\"pdfjs-dist\":\"^2.2.228\"},\"devDependencies\":{\"css-loader\":\"^3.2.0\",\"node-sass\":\"^4.13.0\",\"sass-loader\":\"^8.0.0\",\"style-loader\":\"^1.0.0\",\"ts-loader\":\"^6.2.1\",\"typescript\":\"^3.7.2\",\"webpack\":\"^4.41.2\",\"webpack-cli\":\"^3.3.10\",\"webpack-dev-server\":\"^3.9.0\"}}");
 
 /***/ }),
 
@@ -29229,7 +29229,8 @@ exports.EVENTS = {
     LOAD: 'load',
     PAGE_CHANGE: 'pagechange',
     HIGHLIGHT_CLICK: 'highlightclick',
-    PAGE_RESIZE: 'pageresize'
+    PAGE_RESIZE: 'pageresize',
+    SCROLL: 'scroll'
 };
 var eventNames = Object.keys(exports.EVENTS).map(function (k) {
     return exports.EVENTS[k];
@@ -29243,7 +29244,7 @@ var PVEventHandler = /** @class */ (function () {
         });
         this.log = log;
     }
-    PVEventHandler.prototype.addHandler = function (name, handler) {
+    PVEventHandler.prototype.addHandler = function (name, handler, callback) {
         if (!this.events.has(name)) {
             this.log.warn("Invalid event: " + name + ". Available events: " + eventNames.join(', '));
             return;
@@ -29253,8 +29254,11 @@ var PVEventHandler = /** @class */ (function () {
             return;
         }
         this.events.get(name).push(handler);
+        if (typeof callback === 'function') {
+            callback();
+        }
     };
-    PVEventHandler.prototype.removeHandler = function (name, handler) {
+    PVEventHandler.prototype.removeHandler = function (name, handler, callback) {
         if (!this.events.has(name)) {
             this.log.warn("Invalid event: " + name + ". Available events: " + eventNames.join(', '));
             return;
@@ -29267,6 +29271,9 @@ var PVEventHandler = /** @class */ (function () {
         var idx = hs.indexOf(handler);
         if (idx >= 0) {
             hs.splice(idx, 1);
+        }
+        if (typeof callback === 'function') {
+            callback();
         }
     };
     PVEventHandler.prototype.hasListener = function (name) {
@@ -29312,6 +29319,14 @@ var PVPageResizeEvent = /** @class */ (function () {
     return PVPageResizeEvent;
 }());
 exports.PVPageResizeEvent = PVPageResizeEvent;
+var PVScrollEvent = /** @class */ (function () {
+    function PVScrollEvent(scrollTop, scrollLeft) {
+        this.scrollTop = scrollTop;
+        this.scrollLeft = scrollLeft;
+    }
+    return PVScrollEvent;
+}());
+exports.PVScrollEvent = PVScrollEvent;
 
 
 /***/ }),
@@ -29872,6 +29887,7 @@ var PDFViewer = /** @class */ (function () {
         // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
         this.pageHelper = document.createElement('div');
         this.originContainerStyle = {};
+        this.destroyed = false;
         this.onclick = function (e) {
             if (!_this.eventHandler.hasListener(event_1.EVENTS.HIGHLIGHT_CLICK)) {
                 return;
@@ -29909,8 +29925,8 @@ var PDFViewer = /** @class */ (function () {
             _this.renderTimer = setTimeout(function () {
                 _this._render();
             }, 100);
+            _this.eventHandler.trigger(event_1.EVENTS.SCROLL, new event_1.PVScrollEvent(_this.elem.scrollTop, _this.elem.scrollLeft));
         };
-        this.destroyed = false;
         this.isRenderText = utils_1.isDef(option.isRenderText) ? option.isRenderText : false;
         this.width = option.container ? option.container.clientWidth : 0;
         var offline = utils_1.isUndef(option.container);
