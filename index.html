@@ -57,6 +57,8 @@
         <button type="button" onclick="actions.removePageChangeListener()">- page change</button>
         <button type="button" onclick="actions.addHighlightClickListener()">+ highlight click</button>
         <button type="button" onclick="actions.removeHighlightClickListener()">- highlight click</button>
+        <button type="button" onclick="actions.addScrollEvent()">+ scroll</button>
+        <button type="button" onclick="actions.removeScrollEvent()">- scroll</button>
     </div>
 </div>
 <script>
@@ -86,6 +88,9 @@ var events = {
   },
   highlightclick: function (e) {
     console.log('Event: highlight click', e);
+  },
+  scroll: function (e) {
+    console.log('Event: scroll', e);
   }
 };
 
@@ -134,6 +139,12 @@ var actions = {
   },
   removeHighlightClickListener: function() {
     pdf.removeEventListener('highlightclick', events.highlightclick);
+  },
+  addScrollEvent: function() {
+    pdf.addEventListener('scroll', events.scroll);
+  },
+  removeScrollEvent: function() {
+    pdf.removeEventListener('scroll', events.scroll);
   },
   destroy: function() {
     pdf.destroy();

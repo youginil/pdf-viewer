@@ -43,7 +43,7 @@ borderStyle         | String                    | N        | 边框颜色
 * `PDFViewer.prototype.highlightFocus(page, id, highlightFocusClass?: String')`聚焦高亮标注
 * `PDFViewer.prototype.highlightBlur(page, id)`高亮标注失去焦点
 * `PDFViewer.prototype.renderPage(page: Number, width: Number, cb: (canvas) => {}, devicePixelCompatible = true)`渲染一个页面
-* `PDFViewer.prototype.rerender()`重新渲染页面。可用于容器尺寸变化后重新渲染
+* `PDFViewer.prototype.resize(width?: number)`重置pdf页面宽度。不传参数则与container宽度一致
 * `PDFViewer.prototype.destroy()`销毁实例
 
 ### 事件
@@ -76,6 +76,15 @@ class PVPageResizeEvent {
     pageSizes: pageSizes;
 }
 ````
+* `scroll`页面滚动
+````
+class PVScrollEvent {
+    scrollTop: number;
+    scrollLeft: number;
+}
+````
 
 ### Changelog
 [changelog](https://github.com/yinliguo/pdf-viewer/blob/master/CHANGELOG.md)
+
+### TODO

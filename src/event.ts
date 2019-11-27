@@ -4,7 +4,8 @@ export const EVENTS = {
     LOAD: 'load',
     PAGE_CHANGE: 'pagechange',
     HIGHLIGHT_CLICK: 'highlightclick',
-    PAGE_RESIZE: 'pageresize'
+    PAGE_RESIZE: 'pageresize',
+    SCROLL: 'scroll'
 };
 
 const eventNames = Object.keys(EVENTS).map((k) => {
@@ -23,7 +24,7 @@ export class PVEventHandler {
         this.log = log;
     }
 
-    addHandler(name: string, handler: Function) {
+    addHandler(name: string, handler: Function, callback?: Function) {
         if (!this.events.has(name)) {
             this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return;
@@ -33,9 +34,12 @@ export class PVEventHandler {
             return;
         }
         this.events.get(name).push(handler);
+        if (typeof callback === 'function') {
+            callback();
+        }
     }
 
-    removeHandler(name: string, handler: Function) {
+    removeHandler(name: string, handler: Function, callback?: Function) {
         if (!this.events.has(name)) {
             this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return;
@@ -48,6 +52,9 @@ export class PVEventHandler {
         const idx = hs.indexOf(handler);
         if (idx >= 0) {
             hs.splice(idx, 1);
+        }
+        if (typeof callback === 'function') {
+            callback();
         }
     }
 
@@ -81,7 +88,7 @@ export class PVPageChangeEvent {
     }
 }
 
-type highlightList = Array<{page: number, id: Symbol}>;
+type highlightList = Array<{ page: number, id: Symbol }>;
 
 export class PVHighlightClickEvent {
     highlights: highlightList;
@@ -103,5 +110,15 @@ export class PVPageResizeEvent {
 
     constructor(pageSizes: pageSizes) {
         this.pageSizes = pageSizes;
+    }
+}
+
+export class PVScrollEvent {
+    scrollTop: number;
+    scrollLeft: number;
+
+    constructor(scrollTop: number, scrollLeft: number) {
+        this.scrollTop = scrollTop;
+        this.scrollLeft = scrollLeft;
     }
 }

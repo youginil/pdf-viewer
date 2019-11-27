@@ -4,7 +4,7 @@ import {
     PVHighlightClickEvent,
     PVLoadEvent,
     PVPageChangeEvent,
-    PVPageResizeEvent
+    PVPageResizeEvent, PVScrollEvent
 } from "./event";
 import {getViewSize, PDFPage} from "./page";
 import {getEventPath} from "./dom";
@@ -62,6 +62,11 @@ export class PDFViewer {
     // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
     private pageHelper: HTMLElement = document.createElement('div');
     private readonly originContainerStyle: object = {};
+
+    private readonly log: Log;
+    private readonly debug: boolean;
+    private destroyed = false;
+
     private onclick = (e) => {
         if (!this.eventHandler.hasListener(EVENTS.HIGHLIGHT_CLICK)) {
             return;
@@ -87,6 +92,7 @@ export class PDFViewer {
             }
         }
     };
+
     private onscroll = () => {
         if (this.destroyed) {
             return;
@@ -98,10 +104,8 @@ export class PDFViewer {
         this.renderTimer = setTimeout(() => {
             this._render();
         }, 100);
+        this.eventHandler.trigger(EVENTS.SCROLL, new PVScrollEvent(this.elem.scrollTop, this.elem.scrollLeft));
     };
-    private readonly log: Log;
-    private readonly debug;
-    private destroyed = false;
 
     constructor(option: Option) {
         this.isRenderText = isDef(option.isRenderText) ? option.isRenderText : false;
