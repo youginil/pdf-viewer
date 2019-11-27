@@ -23,7 +23,7 @@ if (IS_DEV) {
 
 const PAGE_GAP = 10;
 const DPR = window.devicePixelRatio || 1;
-const CLASS_NAME = 'pjs-pdf-viewer';
+const CLASS_NAME = 'pdf-viewer-666';
 
 interface Option {
     container: HTMLElement

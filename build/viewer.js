@@ -2186,7 +2186,7 @@ function isnan (val) {
 
 exports = module.exports = __webpack_require__(/*! ../node_modules/css-loader/dist/runtime/api.js */ "./node_modules/css-loader/dist/runtime/api.js")(false);
 // Module
-exports.push([module.i, ".pjs-pdf-viewer {\n  height: 100%;\n  direction: ltr; }\n  .pjs-pdf-viewer * {\n    margin: 0;\n    padding: 0;\n    border: 0; }\n  .pjs-pdf-viewer .pdf-page {\n    display: inline-block;\n    background-color: #fff;\n    position: relative; }\n    .pjs-pdf-viewer .pdf-page:not(:nth-child(2)) {\n      margin-top: 10px; }\n  .pjs-pdf-viewer .text-layer {\n    z-index: 2;\n    opacity: .2;\n    overflow: hidden; }\n    .pjs-pdf-viewer .text-layer ::selection {\n      background: blue; }\n    .pjs-pdf-viewer .text-layer * {\n      position: absolute;\n      white-space: pre;\n      transform-origin: 0 0;\n      line-height: 1;\n      color: transparent; }\n  .pjs-pdf-viewer .pdf-highlight {\n    background: yellow;\n    opacity: .3;\n    transition: all .3s ease-in-out; }\n  .pjs-pdf-viewer .pdf-highlight-focus {\n    box-shadow: 0 0 16px 1px #000000; }\n  .pjs-pdf-viewer .pdf-loading {\n    position: absolute;\n    left: 50%;\n    top: 50%;\n    transform: translate(-50%, -50%); }\n", ""]);
+exports.push([module.i, ".pdf-viewer-666 {\n  height: 100%;\n  direction: ltr; }\n  .pdf-viewer-666 * {\n    margin: 0;\n    padding: 0;\n    border: 0; }\n  .pdf-viewer-666 .pdf-page {\n    display: inline-block;\n    background-color: #fff;\n    position: relative; }\n    .pdf-viewer-666 .pdf-page:not(:nth-child(2)) {\n      margin-top: 10px; }\n  .pdf-viewer-666 .text-layer {\n    z-index: 2;\n    opacity: .2;\n    overflow: hidden; }\n    .pdf-viewer-666 .text-layer ::selection {\n      background: blue; }\n    .pdf-viewer-666 .text-layer * {\n      position: absolute;\n      white-space: pre;\n      transform-origin: 0 0;\n      line-height: 1;\n      color: transparent; }\n  .pdf-viewer-666 .pdf-highlight {\n    background: yellow;\n    opacity: .3;\n    transition: all .3s ease-in-out; }\n  .pdf-viewer-666 .pdf-highlight-focus {\n    box-shadow: 0 0 16px 1px #000000; }\n  .pdf-viewer-666 .pdf-loading {\n    position: absolute;\n    left: 50%;\n    top: 50%;\n    transform: translate(-50%, -50%); }\n", ""]);
 
 
 /***/ }),
@@ -29102,7 +29102,7 @@ module.exports = function(module) {
 /*! exports provided: name, version, description, main, scripts, repository, keywords, author, license, dependencies, devDependencies, default */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"web-pdf-viewer\",\"version\":\"1.1.1\",\"description\":\"pdf viewer for web base on pdf.js\",\"main\":\"index.js\",\"scripts\":{\"build\":\"./node_modules/.bin/webpack --env.production \",\"dev\":\"./node_modules/.bin/webpack-dev-server --inline --env.production=false\"},\"repository\":{\"type\":\"git\",\"url\":\"git@github.com:yinliguo/pdf-viewer.git\"},\"keywords\":[\"pdf\"],\"author\":\"yinliguo\",\"license\":\"MIT\",\"dependencies\":{\"pdfjs-dist\":\"^2.2.228\"},\"devDependencies\":{\"css-loader\":\"^3.2.0\",\"node-sass\":\"^4.13.0\",\"sass-loader\":\"^8.0.0\",\"style-loader\":\"^1.0.0\",\"ts-loader\":\"^6.2.1\",\"typescript\":\"^3.7.2\",\"webpack\":\"^4.41.2\",\"webpack-cli\":\"^3.3.10\",\"webpack-dev-server\":\"^3.9.0\"}}");
+module.exports = JSON.parse("{\"name\":\"web-pdf-viewer\",\"version\":\"1.1.2\",\"description\":\"pdf viewer for web base on pdf.js\",\"main\":\"index.js\",\"scripts\":{\"build\":\"./node_modules/.bin/webpack --env.production \",\"dev\":\"./node_modules/.bin/webpack-dev-server --inline --env.production=false\"},\"repository\":{\"type\":\"git\",\"url\":\"git@github.com:yinliguo/pdf-viewer.git\"},\"keywords\":[\"pdf\"],\"author\":\"yinliguo\",\"license\":\"MIT\",\"dependencies\":{\"pdfjs-dist\":\"^2.2.228\"},\"devDependencies\":{\"css-loader\":\"^3.2.0\",\"node-sass\":\"^4.13.0\",\"sass-loader\":\"^8.0.0\",\"style-loader\":\"^1.0.0\",\"ts-loader\":\"^6.2.1\",\"typescript\":\"^3.7.2\",\"webpack\":\"^4.41.2\",\"webpack-cli\":\"^3.3.10\",\"webpack-dev-server\":\"^3.9.0\"}}");
 
 /***/ }),
 
@@ -29869,7 +29869,7 @@ exports.pdfjs = __webpack_require__(/*! pdfjs-dist/build/pdf.js */ "./node_modul
 if (false) { var PdfjsWorker; }
 var PAGE_GAP = 10;
 var DPR = window.devicePixelRatio || 1;
-var CLASS_NAME = 'pjs-pdf-viewer';
+var CLASS_NAME = 'pdf-viewer-666';
 var PDFViewer = /** @class */ (function () {
     function PDFViewer(option) {
         var _this = this;
