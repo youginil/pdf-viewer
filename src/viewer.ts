@@ -88,7 +88,7 @@ export class PDFViewer {
             }
             const highlights = this.pages[page - 1].getHighlightsByPoint(x, y);
             if (highlights.length > 0) {
-                this.eventHandler.trigger(EVENTS.HIGHLIGHT_CLICK, new PVHighlightClickEvent(highlights));
+                this.eventHandler.trigger(EVENTS.HIGHLIGHT_CLICK, new PVHighlightClickEvent(this, highlights));
             }
         }
     };
@@ -104,7 +104,7 @@ export class PDFViewer {
         this.renderTimer = setTimeout(() => {
             this._render();
         }, 100);
-        this.eventHandler.trigger(EVENTS.SCROLL, new PVScrollEvent(this.elem.scrollTop, this.elem.scrollLeft));
+        this.eventHandler.trigger(EVENTS.SCROLL, new PVScrollEvent(this, this.elem.scrollTop, this.elem.scrollLeft));
     };
 
     constructor(option: Option) {
@@ -160,7 +160,7 @@ export class PDFViewer {
     }
 
     private _handlePageResize(ps) {
-        this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(ps));
+        this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(this, ps));
     }
 
     private _render(force: boolean = false) {
@@ -204,7 +204,7 @@ export class PDFViewer {
         });
         if (currentPage !== this.currentPage) {
             this.currentPage = currentPage;
-            this.eventHandler.trigger(EVENTS.PAGE_CHANGE, new PVPageChangeEvent(this.currentPage, this.totalPages));
+            this.eventHandler.trigger(EVENTS.PAGE_CHANGE, new PVPageChangeEvent(this, this.currentPage, this.totalPages));
         }
     }
 
@@ -222,7 +222,7 @@ export class PDFViewer {
                 return;
             }
             if (!this.elem) {
-                this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent());
+                this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
                 return;
             }
             /* choose the first page size as initial size for all pages */
@@ -262,10 +262,10 @@ export class PDFViewer {
                     });
                     Promise.resolve()
                         .then(() => {
-                            this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent());
+                            this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
                         })
                         .then(() => {
-                            this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(pageSizes));
+                            this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(this, pageSizes));
                         })
                         .then(() => {
                             this._render();
@@ -411,7 +411,7 @@ export class PDFViewer {
                     };
                 });
                 this._render(true);
-                this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(pageSizes));
+                this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(this, pageSizes));
             }
         });
         return this;

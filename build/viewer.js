@@ -29292,13 +29292,15 @@ var PVEventHandler = /** @class */ (function () {
 }());
 exports.PVEventHandler = PVEventHandler;
 var PVLoadEvent = /** @class */ (function () {
-    function PVLoadEvent() {
+    function PVLoadEvent(pv) {
+        this.pv = pv;
     }
     return PVLoadEvent;
 }());
 exports.PVLoadEvent = PVLoadEvent;
 var PVPageChangeEvent = /** @class */ (function () {
-    function PVPageChangeEvent(page, totalPages) {
+    function PVPageChangeEvent(pv, page, totalPages) {
+        this.pv = pv;
         this.page = page;
         this.totalPages = totalPages;
     }
@@ -29306,21 +29308,24 @@ var PVPageChangeEvent = /** @class */ (function () {
 }());
 exports.PVPageChangeEvent = PVPageChangeEvent;
 var PVHighlightClickEvent = /** @class */ (function () {
-    function PVHighlightClickEvent(highlights) {
+    function PVHighlightClickEvent(pv, highlights) {
+        this.pv = pv;
         this.highlights = highlights;
     }
     return PVHighlightClickEvent;
 }());
 exports.PVHighlightClickEvent = PVHighlightClickEvent;
 var PVPageResizeEvent = /** @class */ (function () {
-    function PVPageResizeEvent(pageSizes) {
+    function PVPageResizeEvent(pv, pageSizes) {
+        this.pv = pv;
         this.pageSizes = pageSizes;
     }
     return PVPageResizeEvent;
 }());
 exports.PVPageResizeEvent = PVPageResizeEvent;
 var PVScrollEvent = /** @class */ (function () {
-    function PVScrollEvent(scrollTop, scrollLeft) {
+    function PVScrollEvent(pv, scrollTop, scrollLeft) {
+        this.pv = pv;
         this.scrollTop = scrollTop;
         this.scrollLeft = scrollLeft;
     }
@@ -29910,7 +29915,7 @@ var PDFViewer = /** @class */ (function () {
                 }
                 var highlights = _this.pages[page - 1].getHighlightsByPoint(x, y);
                 if (highlights.length > 0) {
-                    _this.eventHandler.trigger(event_1.EVENTS.HIGHLIGHT_CLICK, new event_1.PVHighlightClickEvent(highlights));
+                    _this.eventHandler.trigger(event_1.EVENTS.HIGHLIGHT_CLICK, new event_1.PVHighlightClickEvent(_this, highlights));
                 }
             }
         };
@@ -29925,7 +29930,7 @@ var PDFViewer = /** @class */ (function () {
             _this.renderTimer = setTimeout(function () {
                 _this._render();
             }, 100);
-            _this.eventHandler.trigger(event_1.EVENTS.SCROLL, new event_1.PVScrollEvent(_this.elem.scrollTop, _this.elem.scrollLeft));
+            _this.eventHandler.trigger(event_1.EVENTS.SCROLL, new event_1.PVScrollEvent(_this, _this.elem.scrollTop, _this.elem.scrollLeft));
         };
         this.isRenderText = utils_1.isDef(option.isRenderText) ? option.isRenderText : false;
         this.width = option.container ? option.container.clientWidth : 0;
@@ -29977,7 +29982,7 @@ var PDFViewer = /** @class */ (function () {
         }
     }
     PDFViewer.prototype._handlePageResize = function (ps) {
-        this.eventHandler.trigger(event_1.EVENTS.PAGE_RESIZE, new event_1.PVPageResizeEvent(ps));
+        this.eventHandler.trigger(event_1.EVENTS.PAGE_RESIZE, new event_1.PVPageResizeEvent(this, ps));
     };
     PDFViewer.prototype._render = function (force) {
         var _this = this;
@@ -30025,7 +30030,7 @@ var PDFViewer = /** @class */ (function () {
         });
         if (currentPage !== this.currentPage) {
             this.currentPage = currentPage;
-            this.eventHandler.trigger(event_1.EVENTS.PAGE_CHANGE, new event_1.PVPageChangeEvent(this.currentPage, this.totalPages));
+            this.eventHandler.trigger(event_1.EVENTS.PAGE_CHANGE, new event_1.PVPageChangeEvent(this, this.currentPage, this.totalPages));
         }
     };
     PDFViewer.prototype._getDocument = function (cfg) {
@@ -30043,7 +30048,7 @@ var PDFViewer = /** @class */ (function () {
                 return;
             }
             if (!_this.elem) {
-                _this.eventHandler.trigger(event_1.EVENTS.LOAD, new event_1.PVLoadEvent());
+                _this.eventHandler.trigger(event_1.EVENTS.LOAD, new event_1.PVLoadEvent(_this));
                 return;
             }
             /* choose the first page size as initial size for all pages */
@@ -30083,10 +30088,10 @@ var PDFViewer = /** @class */ (function () {
                 });
                 Promise.resolve()
                     .then(function () {
-                    _this.eventHandler.trigger(event_1.EVENTS.LOAD, new event_1.PVLoadEvent());
+                    _this.eventHandler.trigger(event_1.EVENTS.LOAD, new event_1.PVLoadEvent(_this));
                 })
                     .then(function () {
-                    _this.eventHandler.trigger(event_1.EVENTS.PAGE_RESIZE, new event_1.PVPageResizeEvent(pageSizes));
+                    _this.eventHandler.trigger(event_1.EVENTS.PAGE_RESIZE, new event_1.PVPageResizeEvent(_this, pageSizes));
                 })
                     .then(function () {
                     _this._render();
@@ -30231,7 +30236,7 @@ var PDFViewer = /** @class */ (function () {
                     };
                 });
                 _this._render(true);
-                _this.eventHandler.trigger(event_1.EVENTS.PAGE_RESIZE, new event_1.PVPageResizeEvent(pageSizes_1));
+                _this.eventHandler.trigger(event_1.EVENTS.PAGE_RESIZE, new event_1.PVPageResizeEvent(_this, pageSizes_1));
             }
         });
         return this;

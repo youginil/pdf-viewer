@@ -1,4 +1,5 @@
 import {Log} from "./log";
+import {PDFViewer} from "./viewer";
 
 export const EVENTS = {
     LOAD: 'load',
@@ -74,15 +75,20 @@ export class PVEventHandler {
 }
 
 export class PVLoadEvent {
-    constructor() {
+    pv: PDFViewer;
+
+    constructor(pv: PDFViewer) {
+        this.pv = pv;
     }
 }
 
 export class PVPageChangeEvent {
+    pv: PDFViewer;
     page: number;
     totalPages: number;
 
-    constructor(page: number, totalPages: number) {
+    constructor(pv: PDFViewer, page: number, totalPages: number) {
+        this.pv = pv;
         this.page = page;
         this.totalPages = totalPages;
     }
@@ -91,9 +97,11 @@ export class PVPageChangeEvent {
 type highlightList = Array<{ page: number, id: Symbol }>;
 
 export class PVHighlightClickEvent {
+    pv: PDFViewer;
     highlights: highlightList;
 
-    constructor(highlights: highlightList) {
+    constructor(pv: PDFViewer, highlights: highlightList) {
+        this.pv = pv;
         this.highlights = highlights;
     }
 }
@@ -106,18 +114,22 @@ type pageSizes = {
 };
 
 export class PVPageResizeEvent {
+    pv: PDFViewer;
     pageSizes: pageSizes;
 
-    constructor(pageSizes: pageSizes) {
+    constructor(pv: PDFViewer, pageSizes: pageSizes) {
+        this.pv = pv;
         this.pageSizes = pageSizes;
     }
 }
 
 export class PVScrollEvent {
+    pv: PDFViewer;
     scrollTop: number;
     scrollLeft: number;
 
-    constructor(scrollTop: number, scrollLeft: number) {
+    constructor(pv: PDFViewer, scrollTop: number, scrollLeft: number) {
+        this.pv = pv;
         this.scrollTop = scrollTop;
         this.scrollLeft = scrollLeft;
     }

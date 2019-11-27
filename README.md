@@ -48,9 +48,15 @@ borderStyle         | String                    | N        | 边框颜色
 
 ### 事件
 * `load`PDFViewer加载数据完成
+````
+class PVLoadEvent {
+    pv: PDFViewer;
+}
+````
 * `pagechange`滚动时页数变化
 ````
 class PVPageChangeEvent {
+    pv: PDFViewer;
     page: number;
     totalPages: number;
 }
@@ -60,6 +66,7 @@ class PVPageChangeEvent {
 type highlightList = Array<{page: number, id: Symbol}>;
 
 class PVHighlightClickEvent {
+    pv: PDFViewer;
     highlights: highlightList;
 }
 ````
@@ -73,12 +80,14 @@ type pageSizes = {
 };
 
 class PVPageResizeEvent {
+    pv: PDFViewer;
     pageSizes: pageSizes;
 }
 ````
 * `scroll`页面滚动
 ````
 class PVScrollEvent {
+    pv: PDFViewer;
     scrollTop: number;
     scrollLeft: number;
 }
