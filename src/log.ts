@@ -1,5 +1,4 @@
 enum LOG_LEVEL {
-    DEBUG,
     INFO,
     WARN,
     ERROR
@@ -22,32 +21,32 @@ function now() {
 }
 
 class Log {
-    private readonly level: LOG_LEVEL = LOG_LEVEL.DEBUG;
+    private readonly level: LOG_LEVEL = LOG_LEVEL.INFO;
     private title: string;
     private timing: Map<string, number> = new Map<string, number>();
     private readonly enableTiming: boolean;
 
     constructor(title: string, level: LOG_LEVEL, enableTiming: boolean) {
-        this.title = title;
+        this.title = title ? `[${title}]` : '';
         this.level = level;
         this.enableTiming = enableTiming;
     }
 
     info(...messages) {
         if (this.level >= LOG_LEVEL.INFO) {
-            info(...messages);
+            info(this.title, ...messages);
         }
     }
 
     warn(...messages) {
         if (this.level >= LOG_LEVEL.WARN) {
-            warn(...messages);
+            warn(this.title, ...messages);
         }
     }
 
     error(...messages) {
         if (this.level >= LOG_LEVEL.ERROR) {
-            error(...messages);
+            error(this.title, ...messages);
         }
     }
 
@@ -56,7 +55,7 @@ class Log {
             return;
         }
         if (this.timing.has(name)) {
-            warn(`Mark: ${name} already exist`);
+            warn(this.title, `Mark: ${name} already exist`);
         } else {
             this.timing.set(name, now());
         }
@@ -67,9 +66,9 @@ class Log {
             return;
         }
         if (this.timing.has(name)) {
-            info('⏱ Time consuming:', desc, `${now() - this.timing.get(name)}ms`);
+            info(this.title, '⏱ Time consuming:', desc, `${now() - this.timing.get(name)}ms`);
         } else {
-            warn(`Mark: ${name} not exist`);
+            warn(this.title, `Mark: ${name} not exist`);
         }
     }
 

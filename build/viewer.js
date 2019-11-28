@@ -29355,10 +29355,9 @@ var __spreadArrays = (this && this.__spreadArrays) || function () {
 Object.defineProperty(exports, "__esModule", { value: true });
 var LOG_LEVEL;
 (function (LOG_LEVEL) {
-    LOG_LEVEL[LOG_LEVEL["DEBUG"] = 0] = "DEBUG";
-    LOG_LEVEL[LOG_LEVEL["INFO"] = 1] = "INFO";
-    LOG_LEVEL[LOG_LEVEL["WARN"] = 2] = "WARN";
-    LOG_LEVEL[LOG_LEVEL["ERROR"] = 3] = "ERROR";
+    LOG_LEVEL[LOG_LEVEL["INFO"] = 0] = "INFO";
+    LOG_LEVEL[LOG_LEVEL["WARN"] = 1] = "WARN";
+    LOG_LEVEL[LOG_LEVEL["ERROR"] = 2] = "ERROR";
 })(LOG_LEVEL || (LOG_LEVEL = {}));
 exports.LOG_LEVEL = LOG_LEVEL;
 var enablePerformance = 'performance' in window;
@@ -29379,9 +29378,9 @@ function now() {
 }
 var Log = /** @class */ (function () {
     function Log(title, level, enableTiming) {
-        this.level = LOG_LEVEL.DEBUG;
+        this.level = LOG_LEVEL.INFO;
         this.timing = new Map();
-        this.title = title;
+        this.title = title ? "[" + title + "]" : '';
         this.level = level;
         this.enableTiming = enableTiming;
     }
@@ -29391,7 +29390,7 @@ var Log = /** @class */ (function () {
             messages[_i] = arguments[_i];
         }
         if (this.level >= LOG_LEVEL.INFO) {
-            info.apply(void 0, messages);
+            info.apply(void 0, __spreadArrays([this.title], messages));
         }
     };
     Log.prototype.warn = function () {
@@ -29400,7 +29399,7 @@ var Log = /** @class */ (function () {
             messages[_i] = arguments[_i];
         }
         if (this.level >= LOG_LEVEL.WARN) {
-            warn.apply(void 0, messages);
+            warn.apply(void 0, __spreadArrays([this.title], messages));
         }
     };
     Log.prototype.error = function () {
@@ -29409,7 +29408,7 @@ var Log = /** @class */ (function () {
             messages[_i] = arguments[_i];
         }
         if (this.level >= LOG_LEVEL.ERROR) {
-            error.apply(void 0, messages);
+            error.apply(void 0, __spreadArrays([this.title], messages));
         }
     };
     Log.prototype.mark = function (name) {
@@ -29417,7 +29416,7 @@ var Log = /** @class */ (function () {
             return;
         }
         if (this.timing.has(name)) {
-            warn("Mark: " + name + " already exist");
+            warn(this.title, "Mark: " + name + " already exist");
         }
         else {
             this.timing.set(name, now());
@@ -29428,10 +29427,10 @@ var Log = /** @class */ (function () {
             return;
         }
         if (this.timing.has(name)) {
-            info('⏱ Time consuming:', desc, now() - this.timing.get(name) + "ms");
+            info(this.title, '⏱ Time consuming:', desc, now() - this.timing.get(name) + "ms");
         }
         else {
-            warn("Mark: " + name + " not exist");
+            warn(this.title, "Mark: " + name + " not exist");
         }
     };
     Log.prototype.removeMark = function (name) {
@@ -29876,7 +29875,7 @@ var PAGE_GAP = 10;
 var DPR = window.devicePixelRatio || 1;
 var CLASS_NAME = 'pdf-viewer-666';
 var PDFViewer = /** @class */ (function () {
-    function PDFViewer(option) {
+    function PDFViewer(options) {
         var _this = this;
         this.isRenderText = false;
         this.pdfTask = null;
@@ -29891,83 +29890,44 @@ var PDFViewer = /** @class */ (function () {
         this.ready = false;
         // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
         this.pageHelper = document.createElement('div');
-        this.originContainerStyle = {};
         this.destroyed = false;
-        this.onclick = function (e) {
-            if (!_this.eventHandler.hasListener(event_1.EVENTS.HIGHLIGHT_CLICK)) {
-                return;
-            }
-            var eventPath = dom_1.getEventPath(e);
-            if (eventPath.some(function (elem) { return elem instanceof HTMLElement && elem.hasAttribute('data-page'); })) {
-                var x = e.offsetX;
-                var y = e.offsetY;
-                var page = 0;
-                for (var i = 0; i < eventPath.length; i++) {
-                    var elem = eventPath[i];
-                    if (elem instanceof HTMLElement && elem.hasAttribute('data-page')) {
-                        page = +elem.getAttribute('data-page');
-                        break;
-                    }
-                    else {
-                        x += elem.offsetLeft;
-                        y += elem.offsetTop;
-                    }
-                }
-                var highlights = _this.pages[page - 1].getHighlightsByPoint(x, y);
-                if (highlights.length > 0) {
-                    _this.eventHandler.trigger(event_1.EVENTS.HIGHLIGHT_CLICK, new event_1.PVHighlightClickEvent(_this, highlights));
-                }
-            }
-        };
-        this.onscroll = function () {
-            if (_this.destroyed) {
-                return;
-            }
-            if (_this.renderTimer) {
-                clearTimeout(_this.renderTimer);
-                _this.renderTimer = null;
-            }
-            _this.renderTimer = setTimeout(function () {
-                _this._render();
-            }, 100);
-            _this.eventHandler.trigger(event_1.EVENTS.SCROLL, new event_1.PVScrollEvent(_this, _this.elem.scrollTop, _this.elem.scrollLeft));
-        };
-        this.isRenderText = utils_1.isDef(option.isRenderText) ? option.isRenderText : false;
-        this.width = option.container ? option.container.clientWidth : 0;
-        var offline = utils_1.isUndef(option.container);
-        this.debug = utils_1.isDef(option.debug) ? option.debug : false;
-        this.log = new log_1.Log('', this.debug ? log_1.LOG_LEVEL.DEBUG : log_1.LOG_LEVEL.WARN, this.debug);
+        this.isRenderText = utils_1.isDef(options.isRenderText) ? options.isRenderText : false;
+        this.width = options.container ? options.container.clientWidth : 0;
+        var offline = utils_1.isUndef(options.container);
+        this.debug = utils_1.isDef(options.debug) ? options.debug : false;
+        this.log = new log_1.Log(options.logTitle || '', this.debug ? log_1.LOG_LEVEL.INFO : log_1.LOG_LEVEL.WARN, this.debug);
         this.eventHandler = new event_1.PVEventHandler(this.log);
         if (!offline) {
             this.elem = document.createElement('div');
             this.elem.className = CLASS_NAME;
-            this.elem.style.background = utils_1.isDef(option.containerBackground) ? option.containerBackground : '#808080';
-            this.elem.style.border = utils_1.isDef(option.borderStyle) ? option.borderStyle : 'none';
+            this.elem.style.background = utils_1.isDef(options.containerBackground) ? options.containerBackground : '#808080';
+            this.elem.style.border = utils_1.isDef(options.borderStyle) ? options.borderStyle : 'none';
             this.elem.style.overflow = 'auto';
-            this.elem.style.padding = "0 " + (utils_1.isDef(option.gap) ? option.gap : 10) + "px";
-            option.container.appendChild(this.elem);
+            this.elem.style.padding = "0 " + (utils_1.isDef(options.gap) ? options.gap : 10) + "px";
             this.elem.appendChild(this.pageHelper);
-            this.elem.addEventListener('scroll', this.onscroll);
-            this.elem.addEventListener('click', this.onclick);
+            this.elem.addEventListener('scroll', onscroll);
+            this.elem.addEventListener('click', onclick);
+            options.container.appendChild(this.elem);
+            this.elem['pv'] = this;
         }
         var cfg = {
-            cMapUrl: option.cmaps,
+            cMapUrl: options.cmaps,
             cMapPacked: true,
         };
-        if (option.url) {
-            cfg['url'] = option.url;
+        if (utils_1.isDef(options.url)) {
+            cfg['url'] = options.url;
             this._getDocument(cfg);
         }
-        else if (option.data) {
-            cfg['data'] = option.data;
+        else if (utils_1.isDef(options.data)) {
+            cfg['data'] = options.data;
             this._getDocument(cfg);
         }
-        else if (option.file) {
-            if (!(option.file instanceof File)) {
+        else if (utils_1.isDef(options.file)) {
+            if (!(options.file instanceof File)) {
                 this.log.error('Invalid param "file"');
             }
             var fr_1 = new FileReader();
-            fr_1.readAsArrayBuffer(option.file);
+            fr_1.readAsArrayBuffer(options.file);
             fr_1.onload = function () {
                 // @ts-ignore
                 cfg['data'] = new Uint8Array(fr_1.result);
@@ -30242,7 +30202,6 @@ var PDFViewer = /** @class */ (function () {
         return this;
     };
     PDFViewer.prototype.destroy = function () {
-        var _this = this;
         this.destroyed = true;
         if (this.renderTimer) {
             clearTimeout(this.renderTimer);
@@ -30256,12 +30215,9 @@ var PDFViewer = /** @class */ (function () {
         if (this.elem) {
             this.pageHelper.remove();
             this.pageHelper = null;
-            this.elem.removeEventListener('scroll', this.onscroll);
-            this.elem.removeEventListener('click', this.onclick);
+            this.elem.removeEventListener('scroll', onscroll);
+            this.elem.removeEventListener('click', onclick);
             this.elem.remove();
-            Object.keys(this.originContainerStyle).forEach(function (k) {
-                _this.elem.style[k] = _this.originContainerStyle[k];
-            });
             this.elem = null;
         }
         // 销毁event handler
@@ -30275,6 +30231,51 @@ var PDFViewer = /** @class */ (function () {
     return PDFViewer;
 }());
 exports.PDFViewer = PDFViewer;
+function onclick(e) {
+    var eventPath = dom_1.getEventPath(e);
+    var pvElem = eventPath.filter(function (item) {
+        return item.className === CLASS_NAME;
+    })[0];
+    if (!pvElem) {
+        return;
+    }
+    var pv = pvElem['pv'];
+    if (!pv.eventHandler.hasListener(event_1.EVENTS.HIGHLIGHT_CLICK)) {
+        return;
+    }
+    if (eventPath.some(function (elem) { return elem instanceof HTMLElement && elem.hasAttribute('data-page'); })) {
+        var x = e.offsetX;
+        var y = e.offsetY;
+        var page = 0;
+        for (var i = 0; i < eventPath.length; i++) {
+            var elem = eventPath[i];
+            if (elem instanceof HTMLElement && elem.hasAttribute('data-page')) {
+                page = +elem.getAttribute('data-page');
+                break;
+            }
+            else {
+                x += elem.offsetLeft;
+                y += elem.offsetTop;
+            }
+        }
+        var highlights = pv.pages[page - 1].getHighlightsByPoint(x, y);
+        if (highlights.length > 0) {
+            pv.eventHandler.trigger(event_1.EVENTS.HIGHLIGHT_CLICK, new event_1.PVHighlightClickEvent(pv, highlights));
+        }
+    }
+}
+function onscroll(e) {
+    var pvElem = e.target;
+    var pv = pvElem['pv'];
+    if (pv.renderTimer) {
+        clearTimeout(pv.renderTimer);
+        pv.renderTimer = null;
+    }
+    pv.renderTimer = setTimeout(function () {
+        pv._render();
+    }, 100);
+    pv.eventHandler.trigger(event_1.EVENTS.SCROLL, new event_1.PVScrollEvent(pv, pvElem['scrollTop'], pvElem['scrollLeft']));
+}
 
 
 /***/ }),

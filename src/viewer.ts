@@ -25,14 +25,15 @@ const PAGE_GAP = 10;
 const DPR = window.devicePixelRatio || 1;
 const CLASS_NAME = 'pdf-viewer-666';
 
-interface Option {
-    container: HTMLElement
+type Options = {
+    container?: HTMLElement
     url?: string
     data?: [Uint8Array]
     file?: File
     cmaps?: string
     gap?: number
     isRenderText?: boolean
+    logTitle?: string
     containerBackground?: string
     borderStyle?: string
     debug?: boolean
@@ -61,91 +62,50 @@ export class PDFViewer {
     private ready: boolean = false;
     // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
     private pageHelper: HTMLElement = document.createElement('div');
-    private readonly originContainerStyle: object = {};
 
     private readonly log: Log;
     private readonly debug: boolean;
     private destroyed = false;
 
-    private onclick = (e) => {
-        if (!this.eventHandler.hasListener(EVENTS.HIGHLIGHT_CLICK)) {
-            return;
-        }
-        const eventPath = getEventPath(e);
-        if (eventPath.some((elem) => elem instanceof HTMLElement && elem.hasAttribute('data-page'))) {
-            let x = e.offsetX;
-            let y = e.offsetY;
-            let page = 0;
-            for (let i = 0; i < eventPath.length; i++) {
-                const elem = eventPath[i];
-                if (elem instanceof HTMLElement && elem.hasAttribute('data-page')) {
-                    page = +elem.getAttribute('data-page');
-                    break;
-                } else {
-                    x += elem.offsetLeft;
-                    y += elem.offsetTop;
-                }
-            }
-            const highlights = this.pages[page - 1].getHighlightsByPoint(x, y);
-            if (highlights.length > 0) {
-                this.eventHandler.trigger(EVENTS.HIGHLIGHT_CLICK, new PVHighlightClickEvent(this, highlights));
-            }
-        }
-    };
+    constructor(options: Options) {
+        this.isRenderText = isDef(options.isRenderText) ? options.isRenderText : false;
+        this.width = options.container ? options.container.clientWidth : 0;
+        const offline = isUndef(options.container);
+        this.debug = isDef(options.debug) ? options.debug : false;
 
-    private onscroll = () => {
-        if (this.destroyed) {
-            return;
-        }
-        if (this.renderTimer) {
-            clearTimeout(this.renderTimer);
-            this.renderTimer = null;
-        }
-        this.renderTimer = setTimeout(() => {
-            this._render();
-        }, 100);
-        this.eventHandler.trigger(EVENTS.SCROLL, new PVScrollEvent(this, this.elem.scrollTop, this.elem.scrollLeft));
-    };
-
-    constructor(option: Option) {
-        this.isRenderText = isDef(option.isRenderText) ? option.isRenderText : false;
-        this.width = option.container ? option.container.clientWidth : 0;
-        const offline = isUndef(option.container);
-        this.debug = isDef(option.debug) ? option.debug : false;
-
-        this.log = new Log('', this.debug ? LOG_LEVEL.DEBUG : LOG_LEVEL.WARN, this.debug);
+        this.log = new Log(options.logTitle || '', this.debug ? LOG_LEVEL.INFO : LOG_LEVEL.WARN, this.debug);
         this.eventHandler = new PVEventHandler(this.log);
 
         if (!offline) {
             this.elem = document.createElement('div');
             this.elem.className = CLASS_NAME;
-            this.elem.style.background = isDef(option.containerBackground) ? option.containerBackground : '#808080';
-            this.elem.style.border = isDef(option.borderStyle) ? option.borderStyle : 'none';
+            this.elem.style.background = isDef(options.containerBackground) ? options.containerBackground : '#808080';
+            this.elem.style.border = isDef(options.borderStyle) ? options.borderStyle : 'none';
             this.elem.style.overflow = 'auto';
-            this.elem.style.padding = `0 ${isDef(option.gap) ? option.gap : 10}px`;
-            option.container.appendChild(this.elem);
-
+            this.elem.style.padding = `0 ${isDef(options.gap) ? options.gap : 10}px`;
             this.elem.appendChild(this.pageHelper);
-            this.elem.addEventListener('scroll', this.onscroll);
-            this.elem.addEventListener('click', this.onclick);
+            this.elem.addEventListener('scroll', onscroll);
+            this.elem.addEventListener('click', onclick);
+            options.container.appendChild(this.elem);
+            this.elem['pv'] = this;
         }
 
         let cfg = {
-            cMapUrl: option.cmaps,
+            cMapUrl: options.cmaps,
             cMapPacked: true,
         };
-        if (option.url) {
-            cfg['url'] = option.url;
+        if (isDef(options.url)) {
+            cfg['url'] = options.url;
             this._getDocument(cfg);
-        } else if (option.data) {
-            cfg['data'] = option.data;
+        } else if (isDef(options.data)) {
+            cfg['data'] = options.data;
             this._getDocument(cfg);
-        } else if (option.file) {
-            if (!(option.file instanceof File)) {
+        } else if (isDef(options.file)) {
+            if (!(options.file instanceof File)) {
                 this.log.error('Invalid param "file"');
             }
             const fr = new FileReader();
-            fr.readAsArrayBuffer(option.file);
+            fr.readAsArrayBuffer(options.file);
             fr.onload = () => {
                 // @ts-ignore
                 cfg['data'] = new Uint8Array(fr.result);
@@ -431,12 +391,9 @@ export class PDFViewer {
         if (this.elem) {
             this.pageHelper.remove();
             this.pageHelper = null;
-            this.elem.removeEventListener('scroll', this.onscroll);
-            this.elem.removeEventListener('click', this.onclick);
+            this.elem.removeEventListener('scroll', onscroll);
+            this.elem.removeEventListener('click', onclick);
             this.elem.remove();
-            Object.keys(this.originContainerStyle).forEach((k) => {
-                this.elem.style[k] = this.originContainerStyle[k];
-            });
             this.elem = null;
         }
         // 销毁event handler
@@ -446,4 +403,50 @@ export class PDFViewer {
         this.dc = null;
         this.pdfTask = null;
     }
+}
+
+function onclick(e) {
+    const eventPath = getEventPath(e);
+    const pvElem = eventPath.filter((item: HTMLElement) => {
+        return item.className === CLASS_NAME;
+    })[0];
+    if (!pvElem) {
+        return;
+    }
+    const pv = pvElem['pv'];
+    if (!pv.eventHandler.hasListener(EVENTS.HIGHLIGHT_CLICK)) {
+        return;
+    }
+    if (eventPath.some((elem) => elem instanceof HTMLElement && elem.hasAttribute('data-page'))) {
+        let x = e.offsetX;
+        let y = e.offsetY;
+        let page = 0;
+        for (let i = 0; i < eventPath.length; i++) {
+            const elem = eventPath[i];
+            if (elem instanceof HTMLElement && elem.hasAttribute('data-page')) {
+                page = +elem.getAttribute('data-page');
+                break;
+            } else {
+                x += elem.offsetLeft;
+                y += elem.offsetTop;
+            }
+        }
+        const highlights = pv.pages[page - 1].getHighlightsByPoint(x, y);
+        if (highlights.length > 0) {
+            pv.eventHandler.trigger(EVENTS.HIGHLIGHT_CLICK, new PVHighlightClickEvent(pv, highlights));
+        }
+    }
+}
+
+function onscroll(e: Event) {
+    const pvElem = e.target;
+    const pv = pvElem['pv'];
+    if (pv.renderTimer) {
+        clearTimeout(pv.renderTimer);
+        pv.renderTimer = null;
+    }
+    pv.renderTimer = setTimeout(() => {
+        pv._render();
+    }, 100);
+    pv.eventHandler.trigger(EVENTS.SCROLL, new PVScrollEvent(pv, pvElem['scrollTop'], pvElem['scrollLeft']));
 }
