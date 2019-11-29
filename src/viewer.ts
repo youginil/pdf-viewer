@@ -12,7 +12,6 @@ import {animate, Animation} from "./animtion";
 import {isDef, isUndef} from "./utils";
 import {Log, LOG_LEVEL} from "./log";
 import "./style.scss";
-import { stringify } from "querystring";
 
 const pkg = require('../package.json');
 export const pdfjs = require('pdfjs-dist/build/pdf.js');
