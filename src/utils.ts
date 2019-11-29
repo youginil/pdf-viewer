@@ -1,8 +1,8 @@
-function isUndef(v) {
+function isUndef(v: any): boolean {
     return v === undefined || v === null;
 }
 
-function isDef(v) {
+function isDef(v: any): boolean {
     return v !== undefined && v !== null;
 }
 

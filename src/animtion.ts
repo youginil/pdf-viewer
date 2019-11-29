@@ -1,7 +1,7 @@
 const ENABLE_RAF = 'performance' in window && 'requestAnimationFrame' in window;
 
 export interface Animation {
-    stop()
+    stop(): void
 }
 
 const requestAnimationFrame = window.requestAnimationFrame;
@@ -15,9 +15,9 @@ class RafAnimation {
 
     private readonly flag: boolean;
     private readonly startTime: number;
-    private raf;
+    private raf: any;
 
-    constructor(start, end, duration: number, cb: (v: number) => void, endCb: Function) {
+    constructor(start: number, end: number, duration: number, cb: (v: number) => void, endCb: Function) {
         this.start = start;
         this.end = end;
         this.duration = duration;
@@ -59,7 +59,7 @@ class TimerAnimation {
     private readonly endCb: Function;
 
 
-    constructor(start, end, duration, cb, endCb) {
+    constructor(start: number, end: number, duration: number, cb: (v: number) => void, endCb: Function) {
         this.value = start;
         this.times = Math.ceil(duration / TimerAnimation.step);
         this.stepValue = (end - start) / this.times;

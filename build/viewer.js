@@ -29199,7 +29199,7 @@ exports.animate = animate;
 Object.defineProperty(exports, "__esModule", { value: true });
 function getEventPath(e) {
     if ('path' in e) {
-        return e.path;
+        return e['path'];
     }
     var path = [e.target];
     var elem = e.target;
@@ -29457,30 +29457,29 @@ exports.Log = Log;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 var PDFPage = /** @class */ (function () {
-    function PDFPage(_a) {
-        var pdfjs = _a.pdfjs, pageNum = _a.pageNum, pdfPage = _a.pdfPage, width = _a.width, height = _a.height, isRenderText = _a.isRenderText, pageResizeCallback = _a.pageResizeCallback, log = _a.log;
+    function PDFPage(options) {
         this.originWidth = 0;
         this.originHeight = 0;
         this.scale = 1;
         this.pageElement = document.createElement('div');
         this.loadingElement = document.createElement('div');
+        this.canvas = null;
+        this.textElement = null;
         this.highlights = new Map();
         this.canvasCtx = null;
-        // @ts-ignore
         this.canvasRenderTask = null;
-        // @ts-ignore
         this.textRenderTask = null;
         this.destroyed = false;
-        this.pdfjs = pdfjs;
-        this.pageNum = pageNum;
-        this.pdfPage = pdfPage;
-        this.width = width;
-        this.height = height;
-        this.isRenderText = isRenderText;
-        this.pageResizeCallback = pageResizeCallback;
-        this.log = log;
-        this.pageElement.style.width = width + 'px';
-        this.pageElement.style.height = height + 'px';
+        this.pdfjs = options.pdfjs;
+        this.pageNum = options.pageNum;
+        this.pdfPage = options.pdfPage;
+        this.width = options.width;
+        this.height = options.height;
+        this.isRenderText = options.isRenderText;
+        this.pageResizeCallback = options.pageResizeCallback;
+        this.log = options.log;
+        this.pageElement.style.width = options.width + 'px';
+        this.pageElement.style.height = options.height + 'px';
         this.pageElement.className = 'pdf-page';
         this.pageElement.setAttribute('data-page', '' + this.pageNum);
         this.loadingElement.innerText = 'LOADING...';
@@ -29733,7 +29732,10 @@ var PDFPage = /** @class */ (function () {
         var hls = [];
         this.highlights.forEach(function (hl, id) {
             var elem = _this.highlights.get(id).elem;
-            if (elem.offsetLeft <= x && elem.offsetLeft + elem.offsetWidth >= x && elem.offsetTop <= y && elem.offsetTop + elem.offsetHeight >= y) {
+            if (elem.offsetLeft <= x
+                && elem.offsetLeft + elem.offsetWidth >= x
+                && elem.offsetTop <= y
+                && elem.offsetTop + elem.offsetHeight >= y) {
                 hls.push({
                     page: _this.pageNum,
                     id: id
@@ -29877,6 +29879,7 @@ var CLASS_NAME = 'pdf-viewer-666';
 var PDFViewer = /** @class */ (function () {
     function PDFViewer(options) {
         var _this = this;
+        this.elem = null;
         this.isRenderText = false;
         this.pdfTask = null;
         this.dc = null;
@@ -29891,10 +29894,10 @@ var PDFViewer = /** @class */ (function () {
         // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
         this.pageHelper = document.createElement('div');
         this.destroyed = false;
-        this.isRenderText = utils_1.isDef(options.isRenderText) ? options.isRenderText : false;
+        this.isRenderText = utils_1.isDef(options.isRenderText) ? !!options.isRenderText : false;
         this.width = options.container ? options.container.clientWidth : 0;
         var offline = utils_1.isUndef(options.container);
-        this.debug = utils_1.isDef(options.debug) ? options.debug : false;
+        this.debug = utils_1.isDef(options.debug) ? !!options.debug : false;
         this.log = new log_1.Log(options.logTitle || '', this.debug ? log_1.LOG_LEVEL.INFO : log_1.LOG_LEVEL.WARN, this.debug);
         this.eventHandler = new event_1.PVEventHandler(this.log);
         if (!offline) {
@@ -29908,6 +29911,7 @@ var PDFViewer = /** @class */ (function () {
             this.elem.addEventListener('scroll', onscroll);
             this.elem.addEventListener('click', onclick);
             options.container.appendChild(this.elem);
+            // @ts-ignore
             this.elem['pv'] = this;
         }
         var cfg = {
@@ -30077,7 +30081,7 @@ var PDFViewer = /** @class */ (function () {
     };
     PDFViewer.prototype.scrollTo = function (page, pageTop, cb) {
         var _this = this;
-        if (cb === void 0) { cb = null; }
+        if (cb === void 0) { cb = function () { }; }
         if (!this.ready || !this.elem) {
             return this;
         }
@@ -30151,7 +30155,6 @@ var PDFViewer = /** @class */ (function () {
         var _this = this;
         if (devicePixelCompatible === void 0) { devicePixelCompatible = true; }
         this.pdfTask.promise.then(function (dc) {
-            // @ts-ignore
             dc.getPage(page).then(function (pdfPage) {
                 width = (width || _this.width) * (devicePixelCompatible ? DPR : 1);
                 var viewport = pdfPage.getViewport();
@@ -30210,7 +30213,7 @@ var PDFViewer = /** @class */ (function () {
         this.pages.forEach(function (page) {
             page.destroy();
         });
-        this.pages = null;
+        this.pages.length = 0;
         // 销毁viewer element
         if (this.elem) {
             this.pageHelper.remove();
@@ -30220,8 +30223,6 @@ var PDFViewer = /** @class */ (function () {
             this.elem.remove();
             this.elem = null;
         }
-        // 销毁event handler
-        this.eventHandler = null;
         // 销毁pdf.js相关的变量
         this.dc.destroy();
         this.dc = null;
@@ -30250,6 +30251,7 @@ function onclick(e) {
         for (var i = 0; i < eventPath.length; i++) {
             var elem = eventPath[i];
             if (elem instanceof HTMLElement && elem.hasAttribute('data-page')) {
+                // @ts-ignore
                 page = +elem.getAttribute('data-page');
                 break;
             }
@@ -30266,6 +30268,7 @@ function onclick(e) {
 }
 function onscroll(e) {
     var pvElem = e.target;
+    // @ts-ignore
     var pv = pvElem['pv'];
     if (pv.renderTimer) {
         clearTimeout(pv.renderTimer);

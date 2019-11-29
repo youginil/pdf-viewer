@@ -1,7 +1,7 @@
 import {Log} from "./log";
 import {PDFViewer} from "./viewer";
 
-export const EVENTS = {
+export const EVENTS: {[prop: string]: string} = {
     LOAD: 'load',
     PAGE_CHANGE: 'pagechange',
     HIGHLIGHT_CLICK: 'highlightclick',
@@ -34,7 +34,7 @@ export class PVEventHandler {
             this.log.warn(`Invalid event handler`);
             return;
         }
-        this.events.get(name).push(handler);
+        (this.events.get(name) as Array<Function>).push(handler);
         if (typeof callback === 'function') {
             callback();
         }
@@ -49,7 +49,7 @@ export class PVEventHandler {
             this.log.warn(`Invalid event handler`);
             return;
         }
-        const hs = this.events.get(name);
+        const hs = this.events.get(name) as Array<Function>;
         const idx = hs.indexOf(handler);
         if (idx >= 0) {
             hs.splice(idx, 1);
@@ -64,11 +64,11 @@ export class PVEventHandler {
             this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return false;
         }
-        return this.events.get(name).length > 0;
+        return (this.events.get(name) as Array<Function>).length > 0;
     }
 
     trigger(name: string, value: any) {
-        this.events.get(name).forEach((h) => {
+        (this.events.get(name) as Array<Function>).forEach((h) => {
             h(value);
         });
     }

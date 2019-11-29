@@ -1,3 +1,7 @@
+interface Console {
+    [key: string]: any
+}
+
 enum LOG_LEVEL {
     INFO,
     WARN,
@@ -7,7 +11,7 @@ enum LOG_LEVEL {
 const enablePerformance = 'performance' in window;
 
 function logFn(type: string) {
-    return console[type] || function (...messsages) {
+    return (console as Console)[type] || function (...messsages: Array<any>) {
         console.log(`${type.toUpperCase()}: `, ...messsages);
     }
 }
@@ -32,19 +36,19 @@ class Log {
         this.enableTiming = enableTiming;
     }
 
-    info(...messages) {
+    info(...messages: Array<any>) {
         if (this.level >= LOG_LEVEL.INFO) {
             info(this.title, ...messages);
         }
     }
 
-    warn(...messages) {
+    warn(...messages: Array<any>) {
         if (this.level >= LOG_LEVEL.WARN) {
             warn(this.title, ...messages);
         }
     }
 
-    error(...messages) {
+    error(...messages: Array<any>) {
         if (this.level >= LOG_LEVEL.ERROR) {
             error(this.title, ...messages);
         }
@@ -66,7 +70,7 @@ class Log {
             return;
         }
         if (this.timing.has(name)) {
-            info(this.title, '⏱ Time consuming:', desc, `${now() - this.timing.get(name)}ms`);
+            info(this.title, '⏱ Time consuming:', desc, `${now() - (this.timing.get(name) as number)}ms`);
         } else {
             warn(this.title, `Mark: ${name} not exist`);
         }

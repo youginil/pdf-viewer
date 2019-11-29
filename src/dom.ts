@@ -1,9 +1,9 @@
-function getEventPath(e) {
+function getEventPath(e: Event): Array<any> {
     if ('path' in e) {
-        return e.path;
+        return e['path'];
     }
     const path = [e.target];
-    let elem = e.target;
+    let elem = e.target as HTMLElement;
     while (elem.parentElement !== null) {
         path.push(elem.parentElement);
         elem = elem.parentElement;

@@ -12,6 +12,7 @@ import {animate, Animation} from "./animtion";
 import {isDef, isUndef} from "./utils";
 import {Log, LOG_LEVEL} from "./log";
 import "./style.scss";
+import { stringify } from "querystring";
 
 const pkg = require('../package.json');
 export const pdfjs = require('pdfjs-dist/build/pdf.js');
@@ -41,11 +42,11 @@ type Options = {
 
 export class PDFViewer {
     static version = pkg.version;
-    private elem: HTMLDivElement | null;
+    private elem: HTMLDivElement | null = null;
     private isRenderText: boolean = false;
 
-    private pdfTask = null;
-    private dc = null;
+    private pdfTask: PDFDocumentLoadingTask | null = null;
+    private dc: PDFDocumentProxy | null = null;
 
     private pages: Array<PDFPage> = [];
     private width: number;
@@ -56,22 +57,22 @@ export class PDFViewer {
 
     private eventHandler: PVEventHandler;
 
-    private renderTimer = null;
-    private scrollAnimation: Animation = null;
+    private renderTimer: number | null = null;
+    private scrollAnimation: Animation | null = null;
 
     private ready: boolean = false;
     // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
-    private pageHelper: HTMLElement = document.createElement('div');
+    private pageHelper: HTMLElement | null = document.createElement('div');
 
     private readonly log: Log;
     private readonly debug: boolean;
     private destroyed = false;
 
     constructor(options: Options) {
-        this.isRenderText = isDef(options.isRenderText) ? options.isRenderText : false;
+        this.isRenderText = isDef(options.isRenderText) ? !!options.isRenderText : false;
         this.width = options.container ? options.container.clientWidth : 0;
         const offline = isUndef(options.container);
-        this.debug = isDef(options.debug) ? options.debug : false;
+        this.debug = isDef(options.debug) ? !!options.debug : false;
 
         this.log = new Log(options.logTitle || '', this.debug ? LOG_LEVEL.INFO : LOG_LEVEL.WARN, this.debug);
         this.eventHandler = new PVEventHandler(this.log);
@@ -79,18 +80,19 @@ export class PDFViewer {
         if (!offline) {
             this.elem = document.createElement('div');
             this.elem.className = CLASS_NAME;
-            this.elem.style.background = isDef(options.containerBackground) ? options.containerBackground : '#808080';
-            this.elem.style.border = isDef(options.borderStyle) ? options.borderStyle : 'none';
+            this.elem.style.background = isDef(options.containerBackground) ? options.containerBackground as string : '#808080';
+            this.elem.style.border = isDef(options.borderStyle) ? options.borderStyle as string : 'none';
             this.elem.style.overflow = 'auto';
             this.elem.style.padding = `0 ${isDef(options.gap) ? options.gap : 10}px`;
-            this.elem.appendChild(this.pageHelper);
+            this.elem.appendChild(this.pageHelper as HTMLElement);
             this.elem.addEventListener('scroll', onscroll);
             this.elem.addEventListener('click', onclick);
-            options.container.appendChild(this.elem);
+            (options.container as HTMLElement).appendChild(this.elem);
+            // @ts-ignore
             this.elem['pv'] = this;
         }
 
-        let cfg = {
+        let cfg: DocumentInitParameters = {
             cMapUrl: options.cmaps,
             cMapPacked: true,
         };
@@ -105,7 +107,7 @@ export class PDFViewer {
                 this.log.error('Invalid param "file"');
             }
             const fr = new FileReader();
-            fr.readAsArrayBuffer(options.file);
+            fr.readAsArrayBuffer(options.file as File);
             fr.onload = () => {
                 // @ts-ignore
                 cfg['data'] = new Uint8Array(fr.result);
@@ -119,7 +121,7 @@ export class PDFViewer {
         }
     }
 
-    private _handlePageResize(ps) {
+    private _handlePageResize(ps: {[pageNum: number]: {w: number, h: number}}) {
         this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(this, ps));
     }
 
@@ -134,12 +136,12 @@ export class PDFViewer {
         let prevPageHeight = 0;
         this.pages.forEach((page, pageIdx) => {
             const pageElem = page.getPageElement();
-            const pageHeight = pageElem.clientHeight;
+            const pageHeight = (pageElem as HTMLElement).clientHeight;
             const tmpPageTop = scrollTop - prevPageHeight;
             const tmpGap = pageIdx === 0 ? 0 : PAGE_GAP;// 加上页面的margin-top，这个margin很少变动，所以写死
             if (tmpPageTop < vh + 5 * pageHeight && tmpPageTop > -vh - 5 * pageHeight) {
                 // 页面顶部在可视上下浮动5个页面高度的范围内都渲染
-                page.render(this.dc, force);
+                page.render((this.dc as unknown) as PDFDocumentProxy, force);
                 // 哪个页面在container中占的空间大就使用哪个页面作为当前页面，如果相同，页码小优先
                 let tmpCurrentPage = 0;
                 let tmpCurrentPageVisibleHeight = 0;
@@ -168,10 +170,10 @@ export class PDFViewer {
         }
     }
 
-    private _getDocument(cfg) {
+    private _getDocument(cfg: DocumentInitParameters) {
         this.pdfTask = pdfjs.getDocument(cfg);
         this.log.mark('getdoc');
-        this.pdfTask.promise.then((dc) => {
+        (this.pdfTask as PDFDocumentLoadingTask).promise.then((dc) => {
             this.log.measure('getdoc', 'get document');
             this.log.removeMark('getdoc');
             this.dc = dc;
@@ -203,16 +205,21 @@ export class PDFViewer {
                             log: this.log
                         });
                         this.pages.push(p);
-                        this.elem.appendChild(p.getPageElement());
+                        (this.elem as HTMLElement).appendChild(p.getPageElement() as HTMLElement);
                     }
                     this.ready = true;
                 })
                 .then(() => {
                     // 再次调用then方法是为了延迟渲染的执行，以便上面的页面元素都插入到container中，并且样式得到正确应用
                     // 因为可能产生滚动条，所以重置页面尺寸
-                    this.width = this.pageHelper.clientWidth;
+                    this.width = (this.pageHelper as HTMLElement).clientWidth;
                     const height = this.width / this.firstPageOriginWidth * this.firstPageOriginHeight;
-                    const pageSizes = {};
+                    const pageSizes: {
+                        [key: number]: {
+                            w: number,
+                            h: number
+                        }
+                    } = {};
                     this.pages.forEach((p, pi) => {
                         p.resize(this.width);
                         pageSizes[pi + 1] = {
@@ -253,7 +260,7 @@ export class PDFViewer {
         };
     }
 
-    scrollTo(page: number, pageTop: number, cb: Function = null): PDFViewer {
+    scrollTo(page: number, pageTop: number, cb: Function = () => {}): PDFViewer {
         if (!this.ready || !this.elem) {
             return this;
         }
@@ -266,14 +273,14 @@ export class PDFViewer {
         }
         const pageInstance = this.pages[page - 1];
         const pageElement = pageInstance.getPageElement();
-        const scrollTop = pageElement.offsetTop + pageInstance.calcSize(pageTop) - this.elem.offsetHeight / 2;
+        const scrollTop = (pageElement as HTMLElement).offsetTop + pageInstance.calcSize(pageTop) - this.elem.offsetHeight / 2;
         this.scrollAnimation = animate(this.elem.scrollTop, scrollTop, 300, (v) => {
-            this.elem.scrollTop = v;
+            (this.elem as HTMLElement).scrollTop = v;
         }, cb);
         return this;
     }
 
-    highlight(page: number, x: number, y: number, w: number, h: number, highlightClass: string = 'pdf-highlight'): symbol {
+    highlight(page: number, x: number, y: number, w: number, h: number, highlightClass: string = 'pdf-highlight'): symbol | null {
         if (!this.ready) {
             return null;
         }
@@ -325,8 +332,7 @@ export class PDFViewer {
     }
 
     renderPage(page: number, width: number, cb: (canvas: HTMLCanvasElement) => void, devicePixelCompatible = true) {
-        this.pdfTask.promise.then((dc) => {
-            // @ts-ignore
+        (this.pdfTask as PDFDocumentLoadingTask).promise.then((dc) => {
             dc.getPage(page).then((pdfPage: PDFPageProxy) => {
                 width = (width || this.width) * (devicePixelCompatible ? DPR : 1);
                 const viewport = pdfPage.getViewport();
@@ -355,14 +361,14 @@ export class PDFViewer {
             return this;
         }
         if (isUndef(width)) {
-            width = this.elem.parentElement.clientWidth;
+            width = (this.elem.parentElement as HTMLElement).clientWidth;
         }
         this.elem.style.width = `${width}px`;
         Promise.resolve().then(() => {
-            const tmpWidth = this.pageHelper.clientWidth;
+            const tmpWidth = (this.pageHelper as HTMLElement).clientWidth;
             if (this.width !== tmpWidth) {
                 this.width = tmpWidth;
-                const pageSizes = {};
+                const pageSizes: {[key: number]: {w: number, h: number}} = {};
                 this.pages.forEach((p, i) => {
                     p.resize(this.width);
                     pageSizes[i + 1] = {
@@ -386,26 +392,24 @@ export class PDFViewer {
         this.pages.forEach((page) => {
             page.destroy();
         });
-        this.pages = null;
+        this.pages.length = 0;
         // 销毁viewer element
         if (this.elem) {
-            this.pageHelper.remove();
+            (this.pageHelper as HTMLElement).remove();
             this.pageHelper = null;
             this.elem.removeEventListener('scroll', onscroll);
             this.elem.removeEventListener('click', onclick);
             this.elem.remove();
             this.elem = null;
         }
-        // 销毁event handler
-        this.eventHandler = null;
         // 销毁pdf.js相关的变量
-        this.dc.destroy();
+        (this.dc as PDFDocumentProxy).destroy();
         this.dc = null;
         this.pdfTask = null;
     }
 }
 
-function onclick(e) {
+function onclick(e: MouseEvent) {
     const eventPath = getEventPath(e);
     const pvElem = eventPath.filter((item: HTMLElement) => {
         return item.className === CLASS_NAME;
@@ -424,6 +428,7 @@ function onclick(e) {
         for (let i = 0; i < eventPath.length; i++) {
             const elem = eventPath[i];
             if (elem instanceof HTMLElement && elem.hasAttribute('data-page')) {
+                // @ts-ignore
                 page = +elem.getAttribute('data-page');
                 break;
             } else {
@@ -439,7 +444,8 @@ function onclick(e) {
 }
 
 function onscroll(e: Event) {
-    const pvElem = e.target;
+    const pvElem = e.target as HTMLElement;
+    // @ts-ignore
     const pv = pvElem['pv'];
     if (pv.renderTimer) {
         clearTimeout(pv.renderTimer);

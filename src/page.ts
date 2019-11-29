@@ -7,11 +7,21 @@ type Highlight = {
     highlightFocusClass: string
 };
 
+type PDFPageOptions = {
+    pdfjs: any
+    pageNum: number
+    pdfPage: PDFPageProxy | null
+    width: number
+    height: number
+    isRenderText: boolean
+    pageResizeCallback: Function
+    log: Log
+}
+
 export class PDFPage {
-    private readonly pdfjs;
+    private readonly pdfjs: any;
     private readonly pageNum: number;
-    // @ts-ignore
-    private pdfPage: PDFPageProxy;
+    private pdfPage: PDFPageProxy | null;
     private width: number;
     private height: number;
     private originWidth: number = 0;
@@ -20,51 +30,40 @@ export class PDFPage {
     private readonly isRenderText: boolean;
     private readonly pageResizeCallback: Function;
 
-    private pageElement: HTMLElement = document.createElement('div');
+    private pageElement: HTMLElement | null = document.createElement('div');
     private loadingElement: HTMLElement = document.createElement('div');
-    private canvas: HTMLCanvasElement;
-    private textElement: HTMLElement;
+    private canvas: HTMLCanvasElement | null = null;
+    private textElement: HTMLElement | null = null;
 
     private highlights: Map<symbol, Highlight> = new Map<symbol, Highlight>();
 
-    private canvasCtx: CanvasRenderingContext2D = null;
-    // @ts-ignore
-    private canvasRenderTask: RenderTask = null;
-    // @ts-ignore
-    private textRenderTask: RenderTask = null;
+    private canvasCtx: CanvasRenderingContext2D | null = null;
+    private canvasRenderTask: RenderTask | null = null;
+    private textRenderTask: RenderTask | null = null;
 
     private readonly log: Log;
 
     private destroyed: Boolean = false;
 
-    constructor({
-                    pdfjs,
-                    pageNum,
-                    pdfPage,
-                    width,
-                    height,
-                    isRenderText,
-                    pageResizeCallback,
-                    log
-                }) {
-        this.pdfjs = pdfjs;
-        this.pageNum = pageNum;
-        this.pdfPage = pdfPage;
-        this.width = width;
-        this.height = height;
-        this.isRenderText = isRenderText;
-        this.pageResizeCallback = pageResizeCallback;
-        this.log = log;
-        this.pageElement.style.width = width + 'px';
-        this.pageElement.style.height = height + 'px';
-        this.pageElement.className = 'pdf-page';
-        this.pageElement.setAttribute('data-page', '' + this.pageNum);
+    constructor(options: PDFPageOptions) {
+        this.pdfjs = options.pdfjs;
+        this.pageNum = options.pageNum;
+        this.pdfPage = options.pdfPage;
+        this.width = options.width;
+        this.height = options.height;
+        this.isRenderText = options.isRenderText;
+        this.pageResizeCallback = options.pageResizeCallback;
+        this.log = options.log;
+        (this.pageElement as HTMLElement).style.width = options.width + 'px';
+        (this.pageElement as HTMLElement).style.height = options.height + 'px';
+        (this.pageElement as HTMLElement).className = 'pdf-page';
+        (this.pageElement as HTMLElement).setAttribute('data-page', '' + this.pageNum);
         this.loadingElement.innerText = 'LOADING...';
         this.loadingElement.className = 'pdf-loading';
-        this.pageElement.appendChild(this.loadingElement);
+        (this.pageElement as HTMLElement).appendChild(this.loadingElement);
     }
 
-    getPageElement(): HTMLElement {
+    getPageElement(): HTMLElement | null {
         return this.pageElement;
     }
 
@@ -74,13 +73,13 @@ export class PDFPage {
         }
         this.height *= w / this.width;
         this.width = w;
-        this.pageElement.style.width = `${this.width}px`;
-        this.pageElement.style.height = `${this.height}px`;
+        (this.pageElement as HTMLElement).style.width = `${this.width}px`;
+        (this.pageElement as HTMLElement).style.height = `${this.height}px`;
     }
 
     private _render(force: boolean) {
         if (this.originWidth === 0) {
-            const viewport = this.pdfPage.getViewport();
+            const viewport = (this.pdfPage as PDFPageProxy).getViewport();
             const vs = getViewSize(viewport);
             this.originWidth = vs.w;
             this.originHeight = vs.h;
@@ -96,8 +95,8 @@ export class PDFPage {
         }
         const scale = this.scale = this.width / this.originWidth;
         this.height = this.originHeight * scale;
-        this.pageElement.style.height = this.height + 'px';
-        const vp = this.pdfPage.getViewport({scale: scale * devicePixelRatio});
+        (this.pageElement as HTMLElement).style.height = this.height + 'px';
+        const vp = (this.pdfPage as PDFPageProxy).getViewport({scale: scale * devicePixelRatio});
         // 是否需要渲染
         let needRender = false;
         /* render canvas layer */
@@ -117,7 +116,7 @@ export class PDFPage {
             this.canvas.width = this.width * devicePixelRatio;
             this.canvas.height = this.height * devicePixelRatio;
             this.canvasCtx = this.canvas.getContext('2d');
-            this.canvasRenderTask = this.pdfPage.render({
+            this.canvasRenderTask = (this.pdfPage as PDFPageProxy).render({
                 canvasContext: this.canvasCtx,
                 viewport: vp,
             });
@@ -141,19 +140,19 @@ export class PDFPage {
                 this.textElement.className = 'text-layer';
                 this.textElement.style.width = this.width + 'px';
                 this.textElement.style.height = this.height + 'px';
-                const textContentStream = this.pdfPage.streamTextContent({
+                const textContentStream = (this.pdfPage as PDFPageProxy).streamTextContent({
                     normalizeWhitespace: true,
                 });
                 this.textRenderTask = this.pdfjs.renderTextLayer({
                     textContent: null,
                     textContentStream,
                     container: this.textElement,
-                    viewport: this.pdfPage.getViewport({scale,}),
+                    viewport: (this.pdfPage as PDFPageProxy).getViewport({scale,}),
                     textDivs: [],
                     textContentItemsStr: [],
                     enhanceTextSelection: false,
                 });
-                p2 = this.textRenderTask.promise;
+                p2 = (this.textRenderTask as RenderTask).promise;
             } else {
                 p2 = Promise.resolve();
             }
@@ -173,14 +172,14 @@ export class PDFPage {
             this.log.mark(`RP${this.pageNum}`);
         }
         /* all render done */
-        Promise.all([p1, p2])
+        Promise.all([p1 as Promise<undefined>, p2])
             .then(() => {
                 this.loadingElement.style.display = 'none';
-                this.pageElement.appendChild(this.canvas);
+                (this.pageElement as HTMLElement).appendChild(this.canvas as HTMLCanvasElement);
                 if (this.textElement) {
-                    this.pageElement.appendChild(this.textElement);
+                    (this.pageElement as HTMLElement).appendChild(this.textElement);
                 }
-                this.pageElement.setAttribute('data-load', 'true');
+                (this.pageElement as HTMLElement).setAttribute('data-load', 'true');
                 /* render highlight */
                 this.highlights.forEach((hl, id) => {
                     this._highlight(id);
@@ -207,7 +206,7 @@ export class PDFPage {
         if (this.destroyed || this.canvasRenderTask) {
             return;
         }
-        if (!force && this.pageElement.hasAttribute('data-load')) {
+        if (!force && (this.pageElement as HTMLElement).hasAttribute('data-load')) {
             return;
         }
         if (this.pdfPage) {
@@ -247,7 +246,7 @@ export class PDFPage {
         if (!this.highlights.has(id)) {
             return;
         }
-        const hd = this.highlights.get(id);
+        const hd = this.highlights.get(id) as Highlight;
         if (hd.elem) {
             return;
         }
@@ -263,14 +262,14 @@ export class PDFPage {
         hd.elem.style.height = `${Math.floor(pos[3] * scale)}px`;
         hd.elem.style.left = `${Math.floor(pos[0] * scale)}px`;
         hd.elem.style.top = `${Math.floor(pos[1] * scale)}px`;
-        this.pageElement.appendChild(hd.elem);
+        (this.pageElement as HTMLElement).appendChild(hd.elem);
     }
 
     removeHighlight(id: symbol, del: boolean = true) {
         if (!this.highlights.has(id)) {
             return;
         }
-        const hd = this.highlights.get(id);
+        const hd = this.highlights.get(id) as Highlight;
         if (hd.elem) {
             hd.elem.remove();
             hd.elem = null;
@@ -308,10 +307,13 @@ export class PDFPage {
     }
 
     getHighlightsByPoint(x: number, y: number): Array<{ page: number, id: symbol }> {
-        const hls = [];
+        const hls: Array<{page: number, id: symbol}> = [];
         this.highlights.forEach((hl, id) => {
-            const elem = this.highlights.get(id).elem;
-            if (elem.offsetLeft <= x && elem.offsetLeft + elem.offsetWidth >= x && elem.offsetTop <= y && elem.offsetTop + elem.offsetHeight >= y) {
+            const elem = (this.highlights.get(id) as Highlight).elem;
+            if ((elem as HTMLElement).offsetLeft <= x
+            && (elem as HTMLElement).offsetLeft + (elem as HTMLElement).offsetWidth >= x
+            && (elem as HTMLElement).offsetTop <= y
+            && (elem as HTMLElement).offsetTop + (elem as HTMLElement).offsetHeight >= y) {
                 hls.push({
                     page: this.pageNum,
                     id
@@ -322,18 +324,18 @@ export class PDFPage {
     }
 
     revoke() {
-        if (!this.pageElement.hasAttribute('data-load')) {
+        if (!(this.pageElement as HTMLElement).hasAttribute('data-load')) {
             return;
         }
-        this.canvas.remove();
+        (this.canvas as HTMLCanvasElement).remove();
         this.canvas = null;
         this.canvasCtx = null;
         if (this.isRenderText) {
-            this.textElement.remove();
+            (this.textElement as HTMLElement).remove();
             this.textElement = null;
         }
         this.loadingElement.style.display = 'block';
-        this.pageElement.removeAttribute('data-load');
+        (this.pageElement as HTMLElement).removeAttribute('data-load');
         this.highlights.forEach((hl) => {
             if (hl.elem) {
                 hl.elem.remove();
@@ -343,7 +345,7 @@ export class PDFPage {
     }
 
     destroy() {
-        this.pageElement.remove();
+        (this.pageElement as HTMLElement).remove();
         this.pageElement = null;
         this.canvas = null;
         this.canvasCtx = null;
@@ -362,7 +364,7 @@ export class PDFPage {
     }
 }
 
-export function getViewSize(vp) {
+export function getViewSize(vp: PageViewport) {
     const vb = vp.viewBox;
     if (vp.rotation / 90 % 2 !== 0) {
         return {
