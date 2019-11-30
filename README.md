@@ -97,5 +97,4 @@ class PVScrollEvent {
 [changelog](https://github.com/yinliguo/pdf-viewer/blob/master/CHANGELOG.md)
 
 ### TODO
-* namespace constraint
-* fix devicePixelRatio in page.ts
+* add pdfjs construction params
