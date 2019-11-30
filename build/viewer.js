@@ -29862,6 +29862,7 @@ exports.isDef = isDef;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+/// <reference path="../pdfjs.d.ts" />
 var event_1 = __webpack_require__(/*! ./event */ "./src/event.ts");
 var page_1 = __webpack_require__(/*! ./page */ "./src/page.ts");
 var dom_1 = __webpack_require__(/*! ./dom */ "./src/dom.ts");

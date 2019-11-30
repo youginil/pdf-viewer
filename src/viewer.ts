@@ -1,3 +1,4 @@
+/// <reference path="../pdfjs.d.ts" />
 import {
     EVENTS,
     PVEventHandler,

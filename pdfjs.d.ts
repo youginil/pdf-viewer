@@ -20,7 +20,7 @@ declare class PDFDocumentLoadingTask {
 }
 
 declare class PDFDocumentProxy {
-    numPages: number
+    numPages: number;
     getPage(pageNumber: number): Promise<PDFPageProxy>
     destroy(): void
 }
@@ -33,7 +33,7 @@ declare class PDFPageProxy {
 }
 
 declare class PageViewport {
-    viewBox: [number, number, number, number]
+    viewBox: [number, number, number, number];
     rotation: number
 }
 
