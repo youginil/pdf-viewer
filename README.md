@@ -98,3 +98,4 @@ class PVScrollEvent {
 
 ### TODO
 * add pdfjs construction params
+* add promise catch
