@@ -1,9 +1,13 @@
-function isUndef(v: any): boolean {
+export function isUndef(v: any): boolean {
     return v === undefined || v === null;
 }
 
-function isDef(v: any): boolean {
+export function isDef(v: any): boolean {
     return v !== undefined && v !== null;
 }
 
-export {isUndef, isDef};
+export function extendObject(target: {[key: string]: any}, source: {[key: string]: any}) {
+    Object.keys(source).forEach((k) => {
+        target[k] = source[k];
+    });
+}

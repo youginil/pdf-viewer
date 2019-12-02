@@ -1,5 +1,7 @@
 import {Log} from './log';
 
+const DPR = window.devicePixelRatio || 1;
+
 type Highlight = {
     elem: HTMLElement | null
     pos: [number, number, number, number]
@@ -40,6 +42,8 @@ export class PDFPage {
     private canvasCtx: CanvasRenderingContext2D | null = null;
     private canvasRenderTask: RenderTask | null = null;
     private textRenderTask: RenderTask | null = null;
+
+    private rendering: boolean = false;
 
     private readonly log: Log;
 
@@ -96,7 +100,7 @@ export class PDFPage {
         const scale = this.scale = this.width / this.originWidth;
         this.height = this.originHeight * scale;
         (this.pageElement as HTMLElement).style.height = this.height + 'px';
-        const vp = (this.pdfPage as PDFPageProxy).getViewport({scale: scale * devicePixelRatio});
+        const vp = (this.pdfPage as PDFPageProxy).getViewport({scale: scale * DPR});
         // 是否需要渲染
         let needRender = false;
         /* render canvas layer */
@@ -113,12 +117,12 @@ export class PDFPage {
             this.canvas.style.left = '0';
             this.canvas.style.top = '0';
             this.canvas.style.width = this.width + 'px';
-            this.canvas.width = this.width * devicePixelRatio;
-            this.canvas.height = this.height * devicePixelRatio;
+            this.canvas.width = this.width * DPR;
+            this.canvas.height = this.height * DPR;
             this.canvasCtx = this.canvas.getContext('2d');
             this.canvasRenderTask = (this.pdfPage as PDFPageProxy).render({
                 canvasContext: this.canvasCtx,
-                viewport: vp,
+                viewport: vp
             });
             p1 = this.canvasRenderTask.promise;
         } else {
@@ -201,7 +205,6 @@ export class PDFPage {
             });
     }
 
-    // @ts-ignore
     render(dc: PDFDocumentProxy, force: boolean) {
         if (this.destroyed || this.canvasRenderTask) {
             return;
@@ -327,10 +330,12 @@ export class PDFPage {
         if (!(this.pageElement as HTMLElement).hasAttribute('data-load')) {
             return;
         }
-        (this.canvas as HTMLCanvasElement).remove();
-        this.canvas = null;
-        this.canvasCtx = null;
-        if (this.isRenderText) {
+        if (this.canvas) {
+            (this.canvas as HTMLCanvasElement).remove();
+            this.canvas = null;
+            this.canvasCtx = null;
+        }
+        if (this.isRenderText && this.textElement) {
             (this.textElement as HTMLElement).remove();
             this.textElement = null;
         }

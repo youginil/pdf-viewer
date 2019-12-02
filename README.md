@@ -3,7 +3,7 @@
 ![pdf.js](https://img.shields.io/badge/dependency-mozilla%2Fpdf.js-green)
 ![browsers](https://img.shields.io/badge/Browsers-Chrome%2C%20IE11%2C%20Edge%2C%20Safari%2C%20Firefox-brightgreen)
 
-PDF viewer for web.
+PDF viewer for web base on [pdf.js](https://github.com/mozilla/pdf.js).
 
 ### Usage
 ###### Step1
@@ -31,6 +31,8 @@ cmaps               | String                    | N        | 字符文件url
 isRenderText        | Boolean                   | N        | 是否渲染文字层（文字层用于鼠标拖动选择选择文字）
 containerBackground | String                    | N        | 背景颜色
 borderStyle         | String                    | N        | 边框颜色
+logTitle            | String                    | N        | 日志前缀
+pdfjsParams         | Object                    | N        | pdf.js的`pdfjsLib.getDocument`的参数
 
 
 ### 接口
@@ -47,13 +49,17 @@ borderStyle         | String                    | N        | 边框颜色
 * `PDFViewer.prototype.destroy()`销毁实例
 
 ### 事件
-* `load`PDFViewer加载数据完成
+> online - 渲染页面时可用<br>
+> offline - 不需渲染页面时可用<br>
+> both - 都可用
+
+* `load`PDFViewer加载数据完成 (both)
 ````
 class PVLoadEvent {
     pv: PDFViewer;
 }
 ````
-* `pagechange`滚动时页数变化
+* `pagechange`滚动时页数变化 (online)
 ````
 class PVPageChangeEvent {
     pv: PDFViewer;
@@ -61,7 +67,7 @@ class PVPageChangeEvent {
     totalPages: number;
 }
 ````
-* `highlightclick`点击高亮区域
+* `highlightclick`点击高亮区域 (online)
 ````
 type highlightList = Array<{page: number, id: Symbol}>;
 
@@ -70,7 +76,7 @@ class PVHighlightClickEvent {
     highlights: highlightList;
 }
 ````
-* `pageresize`页面尺寸变化
+* `pageresize`页面尺寸变化 (online)
 ````
 type pageSizes = {
     [prop: number]: {
@@ -84,7 +90,7 @@ class PVPageResizeEvent {
     pageSizes: pageSizes;
 }
 ````
-* `scroll`页面滚动
+* `scroll`页面滚动 (online)
 ````
 class PVScrollEvent {
     pv: PDFViewer;
@@ -97,8 +103,3 @@ class PVScrollEvent {
 [changelog](https://github.com/yinliguo/pdf-viewer/blob/master/CHANGELOG.md)
 
 ### TODO
-* add pdfjs construction params
-* add promise catch
-* add comment about enviroment of event and method
-* load page in view first
-* use binary tree to save pages

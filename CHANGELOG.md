@@ -1,5 +1,9 @@
 # Changelog
 
+### v1.2.0
+* PDFViewer加入参数`logTitle`，可以传入字符串用来标志日志属于哪个文件，在同时运行多个实例时方便看区分日志
+* PDFViewer加入参数`pdfjsParams`，用于传入pdf.js的`pdfjsLib.getDocument`参数，可以自定义很多东西，比如http header。
+
 ### v1.1.3
 * 修改引入方式。直接引入npm包，无须引入css文件和设置container的类名pjs-pdf-viewer，只需要引入这个包即可。建议在实例化时需要传递cmaps参数
 * 规范事件名。`onload`改为`load`，`onpagechange`改为`pagechange`；传给回调函数的参数也改成SomeEvent对象，与原生事件语法一致且具有可扩展性

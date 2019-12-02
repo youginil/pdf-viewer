@@ -29102,7 +29102,7 @@ module.exports = function(module) {
 /*! exports provided: name, version, description, main, scripts, repository, keywords, author, license, dependencies, devDependencies, default */
 /***/ (function(module) {
 
-module.exports = JSON.parse("{\"name\":\"web-pdf-viewer\",\"version\":\"1.1.3\",\"description\":\"pdf viewer for web base on pdf.js\",\"main\":\"index.js\",\"scripts\":{\"build\":\"./node_modules/.bin/webpack --env.production \",\"dev\":\"./node_modules/.bin/webpack-dev-server --inline --env.production=false\"},\"repository\":{\"type\":\"git\",\"url\":\"git@github.com:yinliguo/pdf-viewer.git\"},\"keywords\":[\"pdf\"],\"author\":\"yinliguo\",\"license\":\"MIT\",\"dependencies\":{\"pdfjs-dist\":\"^2.2.228\"},\"devDependencies\":{\"css-loader\":\"^3.2.0\",\"node-sass\":\"^4.13.0\",\"sass-loader\":\"^8.0.0\",\"style-loader\":\"^1.0.0\",\"ts-loader\":\"^6.2.1\",\"typescript\":\"^3.7.2\",\"webpack\":\"^4.41.2\",\"webpack-cli\":\"^3.3.10\",\"webpack-dev-server\":\"^3.9.0\"}}");
+module.exports = JSON.parse("{\"name\":\"web-pdf-viewer\",\"version\":\"1.2.0\",\"description\":\"pdf viewer for web base on pdf.js\",\"main\":\"index.js\",\"scripts\":{\"build\":\"./node_modules/.bin/webpack --env.production \",\"dev\":\"./node_modules/.bin/webpack-dev-server --inline --env.production=false\"},\"repository\":{\"type\":\"git\",\"url\":\"git@github.com:yinliguo/pdf-viewer.git\"},\"keywords\":[\"pdf\"],\"author\":\"yinliguo\",\"license\":\"MIT\",\"dependencies\":{\"pdfjs-dist\":\"^2.2.228\"},\"devDependencies\":{\"css-loader\":\"^3.2.0\",\"node-sass\":\"^4.13.0\",\"sass-loader\":\"^8.0.0\",\"style-loader\":\"^1.0.0\",\"ts-loader\":\"^6.2.1\",\"typescript\":\"^3.7.2\",\"webpack\":\"^4.41.2\",\"webpack-cli\":\"^3.3.10\",\"webpack-dev-server\":\"^3.9.0\"}}");
 
 /***/ }),
 
@@ -29456,6 +29456,7 @@ exports.Log = Log;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+var DPR = window.devicePixelRatio || 1;
 var PDFPage = /** @class */ (function () {
     function PDFPage(options) {
         this.originWidth = 0;
@@ -29469,6 +29470,7 @@ var PDFPage = /** @class */ (function () {
         this.canvasCtx = null;
         this.canvasRenderTask = null;
         this.textRenderTask = null;
+        this.rendering = false;
         this.destroyed = false;
         this.pdfjs = options.pdfjs;
         this.pageNum = options.pageNum;
@@ -29519,7 +29521,7 @@ var PDFPage = /** @class */ (function () {
         var scale = this.scale = this.width / this.originWidth;
         this.height = this.originHeight * scale;
         this.pageElement.style.height = this.height + 'px';
-        var vp = this.pdfPage.getViewport({ scale: scale * devicePixelRatio });
+        var vp = this.pdfPage.getViewport({ scale: scale * DPR });
         // 是否需要渲染
         var needRender = false;
         /* render canvas layer */
@@ -29536,12 +29538,12 @@ var PDFPage = /** @class */ (function () {
             this.canvas.style.left = '0';
             this.canvas.style.top = '0';
             this.canvas.style.width = this.width + 'px';
-            this.canvas.width = this.width * devicePixelRatio;
-            this.canvas.height = this.height * devicePixelRatio;
+            this.canvas.width = this.width * DPR;
+            this.canvas.height = this.height * DPR;
             this.canvasCtx = this.canvas.getContext('2d');
             this.canvasRenderTask = this.pdfPage.render({
                 canvasContext: this.canvasCtx,
-                viewport: vp,
+                viewport: vp
             });
             p1 = this.canvasRenderTask.promise;
         }
@@ -29626,7 +29628,6 @@ var PDFPage = /** @class */ (function () {
             }
         });
     };
-    // @ts-ignore
     PDFPage.prototype.render = function (dc, force) {
         var _this = this;
         if (this.destroyed || this.canvasRenderTask) {
@@ -29748,10 +29749,12 @@ var PDFPage = /** @class */ (function () {
         if (!this.pageElement.hasAttribute('data-load')) {
             return;
         }
-        this.canvas.remove();
-        this.canvas = null;
-        this.canvasCtx = null;
-        if (this.isRenderText) {
+        if (this.canvas) {
+            this.canvas.remove();
+            this.canvas = null;
+            this.canvasCtx = null;
+        }
+        if (this.isRenderText && this.textElement) {
             this.textElement.remove();
             this.textElement = null;
         }
@@ -29848,6 +29851,12 @@ function isDef(v) {
     return v !== undefined && v !== null;
 }
 exports.isDef = isDef;
+function extendObject(target, source) {
+    Object.keys(source).forEach(function (k) {
+        target[k] = source[k];
+    });
+}
+exports.extendObject = extendObject;
 
 
 /***/ }),
@@ -29919,6 +29928,9 @@ var PDFViewer = /** @class */ (function () {
             cMapUrl: options.cmaps,
             cMapPacked: true,
         };
+        if ('pdfjsParams' in options) {
+            utils_1.extendObject(cfg, options.pdfjsParams || {});
+        }
         if (utils_1.isDef(options.url)) {
             cfg['url'] = options.url;
             this._getDocument(cfg);
@@ -29965,7 +29977,7 @@ var PDFViewer = /** @class */ (function () {
             var pageHeight = pageElem.clientHeight;
             var tmpPageTop = scrollTop - prevPageHeight;
             var tmpGap = pageIdx === 0 ? 0 : PAGE_GAP; // 加上页面的margin-top，这个margin很少变动，所以写死
-            if (tmpPageTop < vh + 5 * pageHeight && tmpPageTop > -vh - 5 * pageHeight) {
+            if (tmpPageTop < vh + 2 * pageHeight && tmpPageTop > -vh - 2 * pageHeight) {
                 // 页面顶部在可视上下浮动5个页面高度的范围内都渲染
                 page.render(_this.dc, force);
                 // 哪个页面在container中占的空间大就使用哪个页面作为当前页面，如果相同，页码小优先
@@ -30002,7 +30014,8 @@ var PDFViewer = /** @class */ (function () {
         var _this = this;
         this.pdfTask = exports.pdfjs.getDocument(cfg);
         this.log.mark('getdoc');
-        this.pdfTask.promise.then(function (dc) {
+        this.pdfTask.promise
+            .then(function (dc) {
             _this.log.measure('getdoc', 'get document');
             _this.log.removeMark('getdoc');
             _this.dc = dc;
@@ -30061,7 +30074,13 @@ var PDFViewer = /** @class */ (function () {
                     .then(function () {
                     _this._render();
                 });
+            })
+                .catch(function (err) {
+                _this.log.error('Render first page error', err);
             });
+        })
+            .catch(function (err) {
+            _this.log.error('get document fail.', err);
         });
     };
     PDFViewer.prototype.addEventListener = function (name, handler) {
@@ -30082,7 +30101,8 @@ var PDFViewer = /** @class */ (function () {
     };
     PDFViewer.prototype.scrollTo = function (page, pageTop, cb) {
         var _this = this;
-        if (cb === void 0) { cb = function () { }; }
+        if (cb === void 0) { cb = function () {
+        }; }
         if (!this.ready || !this.elem) {
             return this;
         }
@@ -30155,7 +30175,8 @@ var PDFViewer = /** @class */ (function () {
     PDFViewer.prototype.renderPage = function (page, width, cb, devicePixelCompatible) {
         var _this = this;
         if (devicePixelCompatible === void 0) { devicePixelCompatible = true; }
-        this.pdfTask.promise.then(function (dc) {
+        this.pdfTask.promise
+            .then(function (dc) {
             dc.getPage(page).then(function (pdfPage) {
                 width = (width || _this.width) * (devicePixelCompatible ? DPR : 1);
                 var viewport = pdfPage.getViewport();
@@ -30172,10 +30193,17 @@ var PDFViewer = /** @class */ (function () {
                     canvasContext: canvasCtx,
                     viewport: vp,
                 });
-                canvasRenderTask.promise.then(function () {
+                canvasRenderTask.promise
+                    .then(function () {
                     cb(canvas);
+                })
+                    .catch(function (err) {
+                    _this.log.error('Render offline page canvas fail.', "page: " + page + ", width: " + width, err);
                 });
             });
+        })
+            .catch(function (err) {
+            _this.log.error('Render offline page fail.', "page: " + page + ", width: " + width, err);
         });
     };
     PDFViewer.prototype.resize = function (width) {
@@ -30277,7 +30305,7 @@ function onscroll(e) {
     }
     pv.renderTimer = setTimeout(function () {
         pv._render();
-    }, 100);
+    }, 50);
     pv.eventHandler.trigger(event_1.EVENTS.SCROLL, new event_1.PVScrollEvent(pv, pvElem['scrollTop'], pvElem['scrollLeft']));
 }
 

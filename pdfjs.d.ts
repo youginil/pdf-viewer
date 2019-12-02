@@ -38,5 +38,6 @@ declare class PageViewport {
 }
 
 declare class RenderTask {
-    promise: Promise<undefined>
+    promise: Promise<undefined>;
+    cancel(): void
 }

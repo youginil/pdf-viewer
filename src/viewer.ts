@@ -10,7 +10,7 @@ import {
 import {getViewSize, PDFPage} from "./page";
 import {getEventPath} from "./dom";
 import {animate, Animation} from "./animtion";
-import {isDef, isUndef} from "./utils";
+import {extendObject, isDef, isUndef} from "./utils";
 import {Log, LOG_LEVEL} from "./log";
 import "./style.scss";
 
@@ -37,7 +37,10 @@ type Options = {
     logTitle?: string
     containerBackground?: string
     borderStyle?: string
-    debug?: boolean
+    debug?: boolean,
+    pdfjsParams?: {
+        [key: string]: any
+    }
 }
 
 export class PDFViewer {
@@ -96,6 +99,9 @@ export class PDFViewer {
             cMapUrl: options.cmaps,
             cMapPacked: true,
         };
+        if ('pdfjsParams' in options) {
+            extendObject(cfg, options.pdfjsParams || {});
+        }
         if (isDef(options.url)) {
             cfg['url'] = options.url;
             this._getDocument(cfg);
@@ -121,7 +127,7 @@ export class PDFViewer {
         }
     }
 
-    private _handlePageResize(ps: {[pageNum: number]: {w: number, h: number}}) {
+    private _handlePageResize(ps: { [pageNum: number]: { w: number, h: number } }) {
         this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(this, ps));
     }
 
@@ -139,7 +145,7 @@ export class PDFViewer {
             const pageHeight = (pageElem as HTMLElement).clientHeight;
             const tmpPageTop = scrollTop - prevPageHeight;
             const tmpGap = pageIdx === 0 ? 0 : PAGE_GAP;// 加上页面的margin-top，这个margin很少变动，所以写死
-            if (tmpPageTop < vh + 5 * pageHeight && tmpPageTop > -vh - 5 * pageHeight) {
+            if (tmpPageTop < vh + 2 * pageHeight && tmpPageTop > -vh - 2 * pageHeight) {
                 // 页面顶部在可视上下浮动5个页面高度的范围内都渲染
                 page.render((this.dc as unknown) as PDFDocumentProxy, force);
                 // 哪个页面在container中占的空间大就使用哪个页面作为当前页面，如果相同，页码小优先
@@ -173,72 +179,79 @@ export class PDFViewer {
     private _getDocument(cfg: DocumentInitParameters) {
         this.pdfTask = pdfjs.getDocument(cfg);
         this.log.mark('getdoc');
-        (this.pdfTask as PDFDocumentLoadingTask).promise.then((dc) => {
-            this.log.measure('getdoc', 'get document');
-            this.log.removeMark('getdoc');
-            this.dc = dc;
-            const numPages = this.dc.numPages;
-            this.totalPages = numPages;
-            if (numPages === 0) {
-                this.ready = true;
-                return;
-            }
-            if (!this.elem) {
-                this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
-                return;
-            }
-            /* choose the first page size as initial size for all pages */
-            this.dc.getPage(1)
-                .then((page) => {
-                    const vp = page.getViewport({});
-                    this.firstPageOriginWidth = vp.viewBox[2];
-                    this.firstPageOriginHeight = vp.viewBox[3];
-                    for (let i = 1; i <= numPages; i++) {
-                        const p = new PDFPage({
-                            pdfjs,
-                            pageNum: i,
-                            pdfPage: i === 1 ? page : null,
-                            width: this.width,
-                            height: this.width * this.firstPageOriginHeight / this.firstPageOriginWidth,
-                            isRenderText: this.isRenderText,
-                            pageResizeCallback: this._handlePageResize.bind(this),
-                            log: this.log
-                        });
-                        this.pages.push(p);
-                        (this.elem as HTMLElement).appendChild(p.getPageElement() as HTMLElement);
-                    }
+        (this.pdfTask as PDFDocumentLoadingTask).promise
+            .then((dc) => {
+                this.log.measure('getdoc', 'get document');
+                this.log.removeMark('getdoc');
+                this.dc = dc;
+                const numPages = this.dc.numPages;
+                this.totalPages = numPages;
+                if (numPages === 0) {
                     this.ready = true;
-                })
-                .then(() => {
-                    // 再次调用then方法是为了延迟渲染的执行，以便上面的页面元素都插入到container中，并且样式得到正确应用
-                    // 因为可能产生滚动条，所以重置页面尺寸
-                    this.width = (this.pageHelper as HTMLElement).clientWidth;
-                    const height = this.width / this.firstPageOriginWidth * this.firstPageOriginHeight;
-                    const pageSizes: {
-                        [key: number]: {
-                            w: number,
-                            h: number
+                    return;
+                }
+                if (!this.elem) {
+                    this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
+                    return;
+                }
+                /* choose the first page size as initial size for all pages */
+                this.dc.getPage(1)
+                    .then((page) => {
+                        const vp = page.getViewport({});
+                        this.firstPageOriginWidth = vp.viewBox[2];
+                        this.firstPageOriginHeight = vp.viewBox[3];
+                        for (let i = 1; i <= numPages; i++) {
+                            const p = new PDFPage({
+                                pdfjs,
+                                pageNum: i,
+                                pdfPage: i === 1 ? page : null,
+                                width: this.width,
+                                height: this.width * this.firstPageOriginHeight / this.firstPageOriginWidth,
+                                isRenderText: this.isRenderText,
+                                pageResizeCallback: this._handlePageResize.bind(this),
+                                log: this.log
+                            });
+                            this.pages.push(p);
+                            (this.elem as HTMLElement).appendChild(p.getPageElement() as HTMLElement);
                         }
-                    } = {};
-                    this.pages.forEach((p, pi) => {
-                        p.resize(this.width);
-                        pageSizes[pi + 1] = {
-                            w: this.width,
-                            h: height
-                        };
-                    });
-                    Promise.resolve()
-                        .then(() => {
-                            this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
-                        })
-                        .then(() => {
-                            this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(this, pageSizes));
-                        })
-                        .then(() => {
-                            this._render();
+                        this.ready = true;
+                    })
+                    .then(() => {
+                        // 再次调用then方法是为了延迟渲染的执行，以便上面的页面元素都插入到container中，并且样式得到正确应用
+                        // 因为可能产生滚动条，所以重置页面尺寸
+                        this.width = (this.pageHelper as HTMLElement).clientWidth;
+                        const height = this.width / this.firstPageOriginWidth * this.firstPageOriginHeight;
+                        const pageSizes: {
+                            [key: number]: {
+                                w: number,
+                                h: number
+                            }
+                        } = {};
+                        this.pages.forEach((p, pi) => {
+                            p.resize(this.width);
+                            pageSizes[pi + 1] = {
+                                w: this.width,
+                                h: height
+                            };
                         });
-                });
-        });
+                        Promise.resolve()
+                            .then(() => {
+                                this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
+                            })
+                            .then(() => {
+                                this.eventHandler.trigger(EVENTS.PAGE_RESIZE, new PVPageResizeEvent(this, pageSizes));
+                            })
+                            .then(() => {
+                                this._render();
+                            });
+                    })
+                    .catch((err) => {
+                        this.log.error('Render first page error', err);
+                    });
+            })
+            .catch((err) => {
+                this.log.error('get document fail.', err);
+            });
     }
 
     addEventListener(name: string, handler: Function): PDFViewer {
@@ -260,7 +273,8 @@ export class PDFViewer {
         };
     }
 
-    scrollTo(page: number, pageTop: number, cb: Function = () => {}): PDFViewer {
+    scrollTo(page: number, pageTop: number, cb: Function = () => {
+    }): PDFViewer {
         if (!this.ready || !this.elem) {
             return this;
         }
@@ -332,28 +346,36 @@ export class PDFViewer {
     }
 
     renderPage(page: number, width: number, cb: (canvas: HTMLCanvasElement) => void, devicePixelCompatible = true) {
-        (this.pdfTask as PDFDocumentLoadingTask).promise.then((dc) => {
-            dc.getPage(page).then((pdfPage: PDFPageProxy) => {
-                width = (width || this.width) * (devicePixelCompatible ? DPR : 1);
-                const viewport = pdfPage.getViewport();
-                const vs = getViewSize(viewport);
-                const scale = width / vs.w;
-                const height = scale * vs.h;
-                const vp = pdfPage.getViewport({scale,});
-                /* render canvas layer */
-                const canvas = document.createElement('canvas');
-                const canvasCtx = canvas.getContext('2d');
-                canvas.width = width;
-                canvas.height = height;
-                const canvasRenderTask = pdfPage.render({
-                    canvasContext: canvasCtx,
-                    viewport: vp,
+        (this.pdfTask as PDFDocumentLoadingTask).promise
+            .then((dc) => {
+                dc.getPage(page).then((pdfPage: PDFPageProxy) => {
+                    width = (width || this.width) * (devicePixelCompatible ? DPR : 1);
+                    const viewport = pdfPage.getViewport();
+                    const vs = getViewSize(viewport);
+                    const scale = width / vs.w;
+                    const height = scale * vs.h;
+                    const vp = pdfPage.getViewport({scale,});
+                    /* render canvas layer */
+                    const canvas = document.createElement('canvas');
+                    const canvasCtx = canvas.getContext('2d');
+                    canvas.width = width;
+                    canvas.height = height;
+                    const canvasRenderTask = pdfPage.render({
+                        canvasContext: canvasCtx,
+                        viewport: vp,
+                    });
+                    canvasRenderTask.promise
+                        .then(() => {
+                            cb(canvas);
+                        })
+                        .catch((err) => {
+                            this.log.error('Render offline page canvas fail.', `page: ${page}, width: ${width}`, err);
+                        });
                 });
-                canvasRenderTask.promise.then(() => {
-                    cb(canvas);
-                });
+            })
+            .catch((err) => {
+                this.log.error('Render offline page fail.', `page: ${page}, width: ${width}`, err);
             });
-        });
     }
 
     resize(width?: number): PDFViewer {
@@ -368,7 +390,7 @@ export class PDFViewer {
             const tmpWidth = (this.pageHelper as HTMLElement).clientWidth;
             if (this.width !== tmpWidth) {
                 this.width = tmpWidth;
-                const pageSizes: {[key: number]: {w: number, h: number}} = {};
+                const pageSizes: { [key: number]: { w: number, h: number } } = {};
                 this.pages.forEach((p, i) => {
                     p.resize(this.width);
                     pageSizes[i + 1] = {
@@ -453,6 +475,6 @@ function onscroll(e: Event) {
     }
     pv.renderTimer = setTimeout(() => {
         pv._render();
-    }, 100);
+    }, 50);
     pv.eventHandler.trigger(EVENTS.SCROLL, new PVScrollEvent(pv, pvElem['scrollTop'], pvElem['scrollLeft']));
 }
