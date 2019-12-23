@@ -460,7 +460,7 @@ function onclick(e: MouseEvent) {
         }
         const highlights = pv.pages[page - 1].getHighlightsByPoint(x, y);
         if (highlights.length > 0) {
-            pv.eventHandler.trigger(EVENTS.HIGHLIGHT_CLICK, new PVHighlightClickEvent(pv, highlights));
+            pv.eventHandler.trigger(EVENTS.HIGHLIGHT_CLICK, new PVHighlightClickEvent(e, pv, highlights));
         }
     }
 }

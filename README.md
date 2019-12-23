@@ -74,6 +74,8 @@ type highlightList = Array<{page: number, id: Symbol}>;
 class PVHighlightClickEvent {
     pv: PDFViewer;
     highlights: highlightList;
+
+    stopPropagation() {}
 }
 ````
 * `pageresize`页面尺寸变化 (online)

@@ -29308,10 +29308,14 @@ var PVPageChangeEvent = /** @class */ (function () {
 }());
 exports.PVPageChangeEvent = PVPageChangeEvent;
 var PVHighlightClickEvent = /** @class */ (function () {
-    function PVHighlightClickEvent(pv, highlights) {
+    function PVHighlightClickEvent(e, pv, highlights) {
+        this._e = e;
         this.pv = pv;
         this.highlights = highlights;
     }
+    PVHighlightClickEvent.prototype.stopPropagation = function () {
+        this._e.stopPropagation();
+    };
     return PVHighlightClickEvent;
 }());
 exports.PVHighlightClickEvent = PVHighlightClickEvent;
@@ -30291,7 +30295,7 @@ function onclick(e) {
         }
         var highlights = pv.pages[page - 1].getHighlightsByPoint(x, y);
         if (highlights.length > 0) {
-            pv.eventHandler.trigger(event_1.EVENTS.HIGHLIGHT_CLICK, new event_1.PVHighlightClickEvent(pv, highlights));
+            pv.eventHandler.trigger(event_1.EVENTS.HIGHLIGHT_CLICK, new event_1.PVHighlightClickEvent(e, pv, highlights));
         }
     }
 }

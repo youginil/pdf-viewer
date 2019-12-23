@@ -97,12 +97,18 @@ export class PVPageChangeEvent {
 type highlightList = Array<{ page: number, id: Symbol }>;
 
 export class PVHighlightClickEvent {
+    private _e: MouseEvent;
     pv: PDFViewer;
     highlights: highlightList;
 
-    constructor(pv: PDFViewer, highlights: highlightList) {
+    constructor(e: MouseEvent, pv: PDFViewer, highlights: highlightList) {
+        this._e = e;
         this.pv = pv;
         this.highlights = highlights;
+    }
+
+    stopPropagation() {
+        this._e.stopPropagation();
     }
 }
 

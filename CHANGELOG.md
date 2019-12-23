@@ -1,4 +1,6 @@
 # Changelog
+### v1.3.0
+* `PVHighlightClickEvent`加入`stopPropagation()`方法用于禁止冒泡
 
 ### v1.2.0
 * PDFViewer加入参数`logTitle`，可以传入字符串用来标志日志属于哪个文件，在同时运行多个实例时方便看区分日志
