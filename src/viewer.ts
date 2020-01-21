@@ -43,6 +43,18 @@ type Options = {
     }
 }
 
+interface HighlightParams {
+    page: number
+    x: number
+    y: number
+    w: number
+    h: number
+    highlightClass?: string
+    attrs?: {
+        [key: string]: string
+    }
+}
+
 export class PDFViewer {
     static version = pkg.version;
     private elem: HTMLDivElement | null = null;
@@ -294,14 +306,14 @@ export class PDFViewer {
         return this;
     }
 
-    highlight(page: number, x: number, y: number, w: number, h: number, highlightClass: string = 'pdf-highlight'): symbol | null {
+    highlight(params: HighlightParams): symbol | null {
         if (!this.ready) {
             return null;
         }
-        if (page < 1 || page > this.pages.length) {
+        if (params.page < 1 || params.page > this.pages.length) {
             return null;
         }
-        return this.pages[page - 1].highlight(x, y, w, h, highlightClass);
+        return this.pages[params.page - 1].highlight(params.x, params.y, params.w, params.h, params.highlightClass ?? 'pdf-highlight', params.attrs ?? {});
     }
 
     removeHighlight(page: number, id: symbol): PDFViewer {

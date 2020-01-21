@@ -7,6 +7,9 @@ type Highlight = {
     pos: [number, number, number, number]
     highlightClass: string
     highlightFocusClass: string
+    attrs: {
+        [key: string]: string
+    }
 };
 
 type PDFPageOptions = {
@@ -231,13 +234,14 @@ export class PDFPage {
         return this.scale * originSize;
     }
 
-    highlight(x: number, y: number, w: number, h: number, highlightClass: string): symbol {
+    highlight(x: number, y: number, w: number, h: number, highlightClass: string, attrs: { [key: string]: string }): symbol {
         let id = Symbol(Date.now() + '_' + Math.random());
         this.highlights.set(id, {
             elem: null,
             pos: [x, y, w, h],
             highlightClass,
-            highlightFocusClass: ''
+            highlightFocusClass: '',
+            attrs: attrs
         });
         if (this.canvasCtx) {
             this._highlight(id);
@@ -265,6 +269,9 @@ export class PDFPage {
         hd.elem.style.height = `${Math.floor(pos[3] * scale)}px`;
         hd.elem.style.left = `${Math.floor(pos[0] * scale)}px`;
         hd.elem.style.top = `${Math.floor(pos[1] * scale)}px`;
+        Object.keys(hd.attrs).forEach((k) => {
+            hd.elem!.setAttribute(k, hd.attrs[k]);
+        });
         (this.pageElement as HTMLElement).appendChild(hd.elem);
     }
 
@@ -310,13 +317,13 @@ export class PDFPage {
     }
 
     getHighlightsByPoint(x: number, y: number): Array<{ page: number, id: symbol }> {
-        const hls: Array<{page: number, id: symbol}> = [];
+        const hls: Array<{ page: number, id: symbol }> = [];
         this.highlights.forEach((hl, id) => {
             const elem = (this.highlights.get(id) as Highlight).elem;
             if ((elem as HTMLElement).offsetLeft <= x
-            && (elem as HTMLElement).offsetLeft + (elem as HTMLElement).offsetWidth >= x
-            && (elem as HTMLElement).offsetTop <= y
-            && (elem as HTMLElement).offsetTop + (elem as HTMLElement).offsetHeight >= y) {
+                && (elem as HTMLElement).offsetLeft + (elem as HTMLElement).offsetWidth >= x
+                && (elem as HTMLElement).offsetTop <= y
+                && (elem as HTMLElement).offsetTop + (elem as HTMLElement).offsetHeight >= y) {
                 hls.push({
                     page: this.pageNum,
                     id

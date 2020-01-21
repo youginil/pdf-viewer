@@ -110,7 +110,16 @@ var actions = {
   },
   hid: null,
   highlight: function() {
-    actions.hid = pdf.highlight(1, 200, 200, 100, 100);
+    actions.hid = pdf.highlight({
+        page: 1,
+        x: 200,
+        y: 200,
+        w: 200,
+        h: 200,
+        attrs: {
+            'data-del': '删除'
+        }
+    });
   },
   removeHighlight: function() {
     pdf.removeHighlight(1, actions.hid);

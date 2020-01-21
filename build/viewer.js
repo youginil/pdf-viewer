@@ -29657,13 +29657,14 @@ var PDFPage = /** @class */ (function () {
     PDFPage.prototype.calcSize = function (originSize) {
         return this.scale * originSize;
     };
-    PDFPage.prototype.highlight = function (x, y, w, h, highlightClass) {
+    PDFPage.prototype.highlight = function (x, y, w, h, highlightClass, attrs) {
         var id = Symbol(Date.now() + '_' + Math.random());
         this.highlights.set(id, {
             elem: null,
             pos: [x, y, w, h],
             highlightClass: highlightClass,
-            highlightFocusClass: ''
+            highlightFocusClass: '',
+            attrs: attrs
         });
         if (this.canvasCtx) {
             this._highlight(id);
@@ -29690,6 +29691,9 @@ var PDFPage = /** @class */ (function () {
         hd.elem.style.height = Math.floor(pos[3] * scale) + "px";
         hd.elem.style.left = Math.floor(pos[0] * scale) + "px";
         hd.elem.style.top = Math.floor(pos[1] * scale) + "px";
+        Object.keys(hd.attrs).forEach(function (k) {
+            hd.elem.setAttribute(k, hd.attrs[k]);
+        });
         this.pageElement.appendChild(hd.elem);
     };
     PDFPage.prototype.removeHighlight = function (id, del) {
@@ -30125,15 +30129,15 @@ var PDFViewer = /** @class */ (function () {
         }, cb);
         return this;
     };
-    PDFViewer.prototype.highlight = function (page, x, y, w, h, highlightClass) {
-        if (highlightClass === void 0) { highlightClass = 'pdf-highlight'; }
+    PDFViewer.prototype.highlight = function (params) {
+        var _a, _b;
         if (!this.ready) {
             return null;
         }
-        if (page < 1 || page > this.pages.length) {
+        if (params.page < 1 || params.page > this.pages.length) {
             return null;
         }
-        return this.pages[page - 1].highlight(x, y, w, h, highlightClass);
+        return this.pages[params.page - 1].highlight(params.x, params.y, params.w, params.h, (_a = params.highlightClass, (_a !== null && _a !== void 0 ? _a : 'pdf-highlight')), (_b = params.attrs, (_b !== null && _b !== void 0 ? _b : {})));
     };
     PDFViewer.prototype.removeHighlight = function (page, id) {
         if (!this.elem) {
