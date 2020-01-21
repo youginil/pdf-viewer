@@ -36,15 +36,15 @@ pdfjsParams         | Object                    | N        | pdf.js的`pdfjsLib.
 
 
 ### 接口
-* `PDFViewer.prototype.addEventListener(eventName: String, handler: Function)`监听事件
-* `PDFViewer.prototype.removeEventListener(eventName: String, handler: Function)`移除事件监听。destroy后会自动移除，无须手动移除
+* `PDFViewer.prototype.addEventListener(eventName: string, handler: Function)`监听事件
+* `PDFViewer.prototype.removeEventListener(eventName: string, handler: Function)`移除事件监听。destroy后会自动移除，无须手动移除
 * `PDFViewer.prototype.getPDFInfo(): Object`获取pdf文档信息
-* `PDFViewer.prototype.scrollTo(page: Number, pageTop: Number, cb?: Function)`滚动到第{page}页的{pageTop}px
-* `PDFViewer.prototype.highlight({page: Number, x: Number, y: Number, w: Number, h: Number, highlightClass?: String', attrs: {[key: string]: string}}): String`设置高亮标注，返回一个id
+* `PDFViewer.prototype.scrollTo(page: number, pageTop: number, cb?: Function)`滚动到第{page}页的{pageTop}px
+* `PDFViewer.prototype.highlight({page: number, x: number, y: number, w: number, h: number, highlightClass?: string', attrs: {[key: string]: string}}): String`设置高亮标注，返回一个id
 * `PDFViewer.prototype.removeHighlight(page: number, id: String)`删除高亮标注。如果不传id，则删除所有标注
-* `PDFViewer.prototype.highlightFocus(page, id, highlightFocusClass?: String')`聚焦高亮标注
+* `PDFViewer.prototype.highlightFocus(page: number, id: string, highlightFocusClass?: string')`聚焦高亮标注
 * `PDFViewer.prototype.highlightBlur(page, id)`高亮标注失去焦点
-* `PDFViewer.prototype.renderPage(page: Number, width: Number, cb: (canvas) => {}, devicePixelCompatible = true)`渲染一个页面
+* `PDFViewer.prototype.renderPage(page: number, width: number, cb: (canvas) => {}, devicePixelCompatible = true)`渲染一个页面
 * `PDFViewer.prototype.resize(width?: number)`重置pdf页面宽度。不传参数则与container宽度一致
 * `PDFViewer.prototype.destroy()`销毁实例
 

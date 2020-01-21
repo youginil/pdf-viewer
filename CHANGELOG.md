@@ -1,4 +1,7 @@
 # Changelog
+### v2.0.0
+* `highlight({page: number, x: number, y: number, w: number, h: number, highlightClass?: string', attrs: {[key: string]: string}}): string`修改highlight方法参数为对象格式，并加入`attrs`参数用于传递节点属性
+
 ### v1.3.0
 * `PVHighlightClickEvent`加入`stopPropagation()`方法用于禁止冒泡
 
