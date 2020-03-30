@@ -17,7 +17,7 @@
   "author": "yinliguo",
   "license": "MIT",
   "dependencies": {
-    "pdfjs-dist": "^2.2.228"
+    "pdfjs-dist": "2.2.228"
   },
   "devDependencies": {
     "css-loader": "^3.2.0",
