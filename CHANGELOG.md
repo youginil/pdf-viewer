@@ -1,4 +1,6 @@
 # Changelog
+### v2.0.1
+* Lock pdfjs's version（重要升级，避免pdfjs-dist版本升级导致本库无法使用）
 ### v2.0.0
 * `highlight({page: number, x: number, y: number, w: number, h: number, highlightClass?: string', attrs: {[key: string]: string}}): string`修改highlight方法参数为对象格式，并加入`attrs`参数用于传递节点属性
 
