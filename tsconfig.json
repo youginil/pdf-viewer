@@ -4,10 +4,10 @@
     "module": "commonjs",
     "target": "es5",
     "sourceMap": true,
-    "lib": ["dom", "es2015", "es2018.promise"]
+    "lib": ["DOM", "ES2015", "ES2016", "ES2017", "ES2018", "ES2019", "ES2020"]
   },
   "include": [
-    "./pdfjs.d.ts"
+    "src/*.ts"
   ],
   "exclude": [
     "node_modules"
