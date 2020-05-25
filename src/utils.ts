@@ -21,8 +21,8 @@ enum TimingSliceStatus {
   Stopping,
 }
 
-export class TimingSlice {
-  private actions: Array<() => Promise<unknown>>;
+export class TaskQueue {
+  private actions: Array<Function>;
 
   private p: Promise<unknown> = Promise.resolve();
 
@@ -36,7 +36,7 @@ export class TimingSlice {
     this.actions = actions;
   }
 
-  private exec(): TimingSlice {
+  private exec(): TaskQueue {
     if (this.status === TimingSliceStatus.Stopping) {
       console.warn("Fail to execute timing slice because it is stopping.");
       return this;
@@ -48,27 +48,10 @@ export class TimingSlice {
       return this;
     }
     this.status = TimingSliceStatus.Executing;
-    this.p
-      .then(() => {
-        return this.actions[this.index]();
-      })
-      .then(() => {
-        this.index += 1;
-        if (this.status === TimingSliceStatus.Stopping) {
-          this.status = TimingSliceStatus.Ready;
-          this.afterStop.forEach((cb) => {
-            Promise.resolve().then(() => {
-              cb();
-            });
-          });
-          this.afterStop.length = 0;
-        } else if (this.index < this.actions.length) {
-          this.exec();
-        } else {
-          this.status = TimingSliceStatus.Ready;
-        }
-      })
-      .catch((err) => {
+    setTimeout(() => {
+      try {
+        this.actions[this.index]();
+      } catch (e) {
         this.status = TimingSliceStatus.Ready;
         this.afterStop.forEach((cb) => {
           Promise.resolve().then(() => {
@@ -76,17 +59,32 @@ export class TimingSlice {
           });
         });
         this.afterStop.length = 0;
-        throw new Error(err);
-      });
+        throw new Error(e);
+      }
+      setTimeout(() => {
+        this.index += 1;
+        if (this.status === TimingSliceStatus.Stopping) {
+          this.status = TimingSliceStatus.Ready;
+          this.afterStop.forEach((cb) => {
+            cb();
+          });
+          this.afterStop.length = 0;
+        } else if (this.index < this.actions.length) {
+          this.exec();
+        } else {
+          this.status = TimingSliceStatus.Ready;
+        }
+      }, 0);
+    }, 0);
     return this;
   }
 
-  add(action: () => Promise<unknown>): TimingSlice {
+  add(action: Function): TaskQueue {
     this.actions.push(action);
     return this;
   }
 
-  start(): TimingSlice {
+  start(): TaskQueue {
     if (this.status === TimingSliceStatus.Executing) {
       console.warn("Don't call execute duplicately.");
       return this;
@@ -117,7 +115,7 @@ export class TimingSlice {
     return this.status === TimingSliceStatus.Stopping;
   }
 
-  clear(): TimingSlice {
+  clear(): TaskQueue {
     this.actions.length = 0;
     this.index = 0;
     return this;

@@ -10,7 +10,7 @@ import {
 import { getViewSize, PDFPage } from "./page";
 import { getEventPath } from "./dom";
 import { animate, Animation } from "./animtion";
-import { extendObject, isDef, isUndef, TimingSlice } from "./utils";
+import { extendObject, isDef, isUndef, TaskQueue} from "./utils";
 import { Log, LOG_LEVEL } from "./log";
 import "./style.scss";
 
@@ -79,7 +79,7 @@ export class PDFViewer {
   // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
   private pageHelper: HTMLElement | null = document.createElement("div");
 
-  private renderTS: TimingSlice = new TimingSlice();
+  private renderTS: TaskQueue = new TaskQueue();
 
   private readonly log: Log;
   private readonly debug: boolean;
@@ -181,7 +181,6 @@ export class PDFViewer {
       this.renderTS.add(
         () =>
           new Promise((resolve) => {
-            console.log(pageIdx);
             const pageElem = page.getPageElement();
             const pageHeight = (pageElem as HTMLElement).clientHeight;
             const tmpPageTop = scrollTop - prevPageHeight;

@@ -30122,7 +30122,7 @@ module.exports = content.locals || {};
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.TimingSlice = exports.extendObject = exports.isDef = exports.isUndef = void 0;
+exports.TaskQueue = exports.extendObject = exports.isDef = exports.isUndef = void 0;
 function isUndef(v) {
     return v === undefined || v === null;
 }
@@ -30143,8 +30143,8 @@ var TimingSliceStatus;
     TimingSliceStatus[TimingSliceStatus["Executing"] = 1] = "Executing";
     TimingSliceStatus[TimingSliceStatus["Stopping"] = 2] = "Stopping";
 })(TimingSliceStatus || (TimingSliceStatus = {}));
-var TimingSlice = /** @class */ (function () {
-    function TimingSlice(actions) {
+var TaskQueue = /** @class */ (function () {
+    function TaskQueue(actions) {
         if (actions === void 0) { actions = []; }
         this.p = Promise.resolve();
         this.index = 0;
@@ -30152,7 +30152,7 @@ var TimingSlice = /** @class */ (function () {
         this.afterStop = [];
         this.actions = actions;
     }
-    TimingSlice.prototype.exec = function () {
+    TaskQueue.prototype.exec = function () {
         var _this = this;
         if (this.status === TimingSliceStatus.Stopping) {
             console.warn("Fail to execute timing slice because it is stopping.");
@@ -30163,13 +30163,11 @@ var TimingSlice = /** @class */ (function () {
             return this;
         }
         this.status = TimingSliceStatus.Executing;
-        this.p
-            .then(function () {
-            return _this.actions[_this.index]();
-        })
-            .then(function () {
-            _this.index += 1;
-            if (_this.status === TimingSliceStatus.Stopping) {
+        setTimeout(function () {
+            try {
+                _this.actions[_this.index]();
+            }
+            catch (e) {
                 _this.status = TimingSliceStatus.Ready;
                 _this.afterStop.forEach(function (cb) {
                     Promise.resolve().then(function () {
@@ -30177,31 +30175,32 @@ var TimingSlice = /** @class */ (function () {
                     });
                 });
                 _this.afterStop.length = 0;
+                throw new Error(e);
             }
-            else if (_this.index < _this.actions.length) {
-                _this.exec();
-            }
-            else {
-                _this.status = TimingSliceStatus.Ready;
-            }
-        })
-            .catch(function (err) {
-            _this.status = TimingSliceStatus.Ready;
-            _this.afterStop.forEach(function (cb) {
-                Promise.resolve().then(function () {
-                    cb();
-                });
-            });
-            _this.afterStop.length = 0;
-            throw new Error(err);
-        });
+            setTimeout(function () {
+                _this.index += 1;
+                if (_this.status === TimingSliceStatus.Stopping) {
+                    _this.status = TimingSliceStatus.Ready;
+                    _this.afterStop.forEach(function (cb) {
+                        cb();
+                    });
+                    _this.afterStop.length = 0;
+                }
+                else if (_this.index < _this.actions.length) {
+                    _this.exec();
+                }
+                else {
+                    _this.status = TimingSliceStatus.Ready;
+                }
+            }, 0);
+        }, 0);
         return this;
     };
-    TimingSlice.prototype.add = function (action) {
+    TaskQueue.prototype.add = function (action) {
         this.actions.push(action);
         return this;
     };
-    TimingSlice.prototype.start = function () {
+    TaskQueue.prototype.start = function () {
         if (this.status === TimingSliceStatus.Executing) {
             console.warn("Don't call execute duplicately.");
             return this;
@@ -30212,7 +30211,7 @@ var TimingSlice = /** @class */ (function () {
         }
         return this.exec();
     };
-    TimingSlice.prototype.stop = function () {
+    TaskQueue.prototype.stop = function () {
         var _this = this;
         switch (this.status) {
             case TimingSliceStatus.Ready:
@@ -30227,21 +30226,21 @@ var TimingSlice = /** @class */ (function () {
                 throw new Error("invalid timing slice status");
         }
     };
-    Object.defineProperty(TimingSlice.prototype, "isStopping", {
+    Object.defineProperty(TaskQueue.prototype, "isStopping", {
         get: function () {
             return this.status === TimingSliceStatus.Stopping;
         },
         enumerable: false,
         configurable: true
     });
-    TimingSlice.prototype.clear = function () {
+    TaskQueue.prototype.clear = function () {
         this.actions.length = 0;
         this.index = 0;
         return this;
     };
-    return TimingSlice;
+    return TaskQueue;
 }());
-exports.TimingSlice = TimingSlice;
+exports.TaskQueue = TaskQueue;
 
 
 /***/ }),
@@ -30324,7 +30323,7 @@ var PDFViewer = /** @class */ (function () {
         this.ready = false;
         // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
         this.pageHelper = document.createElement("div");
-        this.renderTS = new utils_1.TimingSlice();
+        this.renderTS = new utils_1.TaskQueue();
         this.destroyed = false;
         this.isRenderText = utils_1.isDef(options.isRenderText)
             ? !!options.isRenderText
@@ -30414,7 +30413,6 @@ var PDFViewer = /** @class */ (function () {
                         this.pages.forEach(function (page, pageIdx) {
                             _this.renderTS.add(function () {
                                 return new Promise(function (resolve) {
-                                    console.log(pageIdx);
                                     var pageElem = page.getPageElement();
                                     var pageHeight = pageElem.clientHeight;
                                     var tmpPageTop = scrollTop - prevPageHeight;
