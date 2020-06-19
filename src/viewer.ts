@@ -10,7 +10,7 @@ import {
 import { getViewSize, PDFPage } from "./page";
 import { getEventPath } from "./dom";
 import { animate, Animation } from "./animtion";
-import { extendObject, isDef, isUndef, TaskQueue} from "./utils";
+import { extendObject, isDef, isUndef, TaskQueue } from "./utils";
 import { Log, LOG_LEVEL } from "./log";
 import "./style.scss";
 
@@ -68,22 +68,20 @@ export class PDFViewer {
   private firstPageOriginWidth: number = 0;
   private firstPageOriginHeight: number = 0;
   private currentPage: number = 0;
-  private totalPages: number = 0;
 
   private eventHandler: PVEventHandler;
 
   private renderTimer: number | null = null;
+  private renderQueue: TaskQueue = new TaskQueue();
   private scrollAnimation: Animation | null = null;
 
   private ready: boolean = false;
   // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
   private pageHelper: HTMLElement | null = document.createElement("div");
 
-  private renderTS: TaskQueue = new TaskQueue();
+  private logger: Log;
 
-  private readonly log: Log;
-  private readonly debug: boolean;
-  private destroyed = false;
+  private debug: boolean;
 
   constructor(options: Options) {
     this.isRenderText = isDef(options.isRenderText)
@@ -93,12 +91,12 @@ export class PDFViewer {
     const offline = isUndef(options.container);
     this.debug = isDef(options.debug) ? !!options.debug : false;
 
-    this.log = new Log(
+    this.logger = new Log(
       options.logTitle || "",
-      this.debug ? LOG_LEVEL.INFO : LOG_LEVEL.WARN,
-      this.debug
+      this.debug ? LOG_LEVEL.INFO : LOG_LEVEL.WARN
     );
-    this.eventHandler = new PVEventHandler(this.log);
+
+    this.eventHandler = new PVEventHandler();
 
     if (!offline) {
       this.elem = document.createElement("div");
@@ -134,7 +132,7 @@ export class PDFViewer {
       this._getDocument(cfg);
     } else if (isDef(options.file)) {
       if (!(options.file instanceof File)) {
-        this.log.error('Invalid param "file"');
+        this.logger.error('Invalid param "file"');
       }
       const fr = new FileReader();
       fr.readAsArrayBuffer(options.file as File);
@@ -143,10 +141,10 @@ export class PDFViewer {
         this._getDocument(cfg);
       };
       fr.onerror = () => {
-        this.log.error('The param "file" cannot be loaded');
+        this.logger.error('The param "file" cannot be loaded');
       };
     } else {
-      this.log.error(
+      this.logger.error(
         'You must specify the pdf source by "url", "data" or "file"'
       );
     }
@@ -161,178 +159,136 @@ export class PDFViewer {
     );
   }
 
-  private async _render(force: boolean = false) {
-    if (
-      !this.ready ||
-      !this.elem ||
-      this.pages.length === 0 ||
-      this.renderTS.isStopping
-    ) {
+  private async _render() {
+    if (!this.ready || !this.elem || this.pages.length === 0) {
       return;
     }
-    await this.renderTS.stop();
-    this.renderTS.clear();
+    await this.renderQueue.stop();
+    this.renderQueue.clear();
     const vh = this.elem.clientHeight;
     const scrollTop = this.elem.scrollTop;
     let currentPage = 0;
     let currentPageVisibleHeight = 0;
     let prevPageHeight = 0;
     this.pages.forEach((page, pageIdx) => {
-      this.renderTS.add(
-        () =>
-          new Promise((resolve) => {
-            const pageElem = page.getPageElement();
-            const pageHeight = (pageElem as HTMLElement).clientHeight;
-            const tmpPageTop = scrollTop - prevPageHeight;
-            const tmpGap = pageIdx === 0 ? 0 : PAGE_GAP; // 加上页面的margin-top，这个margin很少变动，所以写死
-            if (
-              tmpPageTop < vh + 2 * pageHeight &&
-              tmpPageTop > -vh - 2 * pageHeight
-            ) {
-              // 页面顶部在可视上下浮动5个页面高度的范围内都渲染
-              page.render(this.dc as PDFDocumentProxy, force);
-              // 哪个页面在container中占的空间大就使用哪个页面作为当前页面，如果相同，页码小优先
-              let tmpCurrentPage = 0;
-              let tmpCurrentPageVisibleHeight = 0;
-              if (
-                prevPageHeight >= scrollTop &&
-                prevPageHeight < scrollTop + vh
-              ) {
-                tmpCurrentPage = pageIdx + 1;
-                tmpCurrentPageVisibleHeight =
-                  pageHeight +
-                  tmpGap -
-                  Math.max(prevPageHeight + pageHeight - scrollTop - vh, 0);
-              } else if (
-                prevPageHeight + pageHeight + tmpGap > scrollTop &&
-                prevPageHeight + pageHeight + tmpGap <= scrollTop + vh
-              ) {
-                tmpCurrentPage = pageIdx + 1;
-                tmpCurrentPageVisibleHeight =
-                  pageHeight + tmpGap - Math.max(scrollTop - prevPageHeight, 0);
-              } else if (
-                prevPageHeight <= scrollTop &&
-                prevPageHeight + pageHeight + tmpGap >= scrollTop + vh
-              ) {
-                tmpCurrentPage = pageIdx + 1;
-                tmpCurrentPageVisibleHeight = vh;
-              }
-              if (
-                tmpCurrentPage > 0 &&
-                tmpCurrentPageVisibleHeight > currentPageVisibleHeight
-              ) {
-                currentPage = tmpCurrentPage;
-                currentPageVisibleHeight = tmpCurrentPageVisibleHeight;
-              }
-            } else {
-              page.revoke();
-            }
-            prevPageHeight += pageHeight + tmpGap;
-            resolve();
-          })
-      );
+      const pageElem = page.getPageElement();
+      const pageHeight = (pageElem as HTMLElement).clientHeight;
+      const tmpPageTop = scrollTop - prevPageHeight;
+      const tmpGap = pageIdx === 0 ? 0 : PAGE_GAP; // 加上页面的margin-top，这个margin很少变动，所以写死
+      if (
+        tmpPageTop < vh + 2 * pageHeight &&
+        tmpPageTop > -vh - 2 * pageHeight
+      ) {
+        // 页面顶部在可视上下浮动5个页面高度的范围内都渲染
+        this.renderQueue.add(() => page.render());
+        // 哪个页面在container中占的空间大就使用哪个页面作为当前页面，如果相同，页码小优先
+        let tmpCurrentPage = 0;
+        let tmpCurrentPageVisibleHeight = 0;
+        if (prevPageHeight >= scrollTop && prevPageHeight < scrollTop + vh) {
+          tmpCurrentPage = pageIdx + 1;
+          tmpCurrentPageVisibleHeight =
+            pageHeight +
+            tmpGap -
+            Math.max(prevPageHeight + pageHeight - scrollTop - vh, 0);
+        } else if (
+          prevPageHeight + pageHeight + tmpGap > scrollTop &&
+          prevPageHeight + pageHeight + tmpGap <= scrollTop + vh
+        ) {
+          tmpCurrentPage = pageIdx + 1;
+          tmpCurrentPageVisibleHeight =
+            pageHeight + tmpGap - Math.max(scrollTop - prevPageHeight, 0);
+        } else if (
+          prevPageHeight <= scrollTop &&
+          prevPageHeight + pageHeight + tmpGap >= scrollTop + vh
+        ) {
+          tmpCurrentPage = pageIdx + 1;
+          tmpCurrentPageVisibleHeight = vh;
+        }
+        if (
+          tmpCurrentPage > 0 &&
+          tmpCurrentPageVisibleHeight > currentPageVisibleHeight
+        ) {
+          currentPage = tmpCurrentPage;
+          currentPageVisibleHeight = tmpCurrentPageVisibleHeight;
+        }
+      } else {
+        page.revoke();
+      }
+      prevPageHeight += pageHeight + tmpGap;
     });
-    this.renderTS.add(
-      () =>
-        new Promise((resolve) => {
-          if (currentPage !== this.currentPage) {
-            this.currentPage = currentPage;
-            this.eventHandler.trigger(
-              EVENTS.PAGE_CHANGE,
-              new PVPageChangeEvent(this, this.currentPage, this.totalPages)
-            );
-          }
-          resolve();
-        })
-    );
-    this.renderTS.start();
+    if (currentPage !== this.currentPage) {
+      this.currentPage = currentPage;
+      this.eventHandler.trigger(
+        EVENTS.PAGE_CHANGE,
+        new PVPageChangeEvent(this, this.currentPage, this.dc?.numPages || 0)
+      );
+    }
   }
 
-  private _getDocument(cfg: DocumentInitParameters) {
+  private async _getDocument(cfg: DocumentInitParameters) {
     this.pdfTask = pdfjs.getDocument(cfg);
-    this.log.mark("getdoc");
-    (this.pdfTask as PDFDocumentLoadingTask).promise
-      .then((dc) => {
-        this.log.measure("getdoc", "get document");
-        this.log.removeMark("getdoc");
-        this.dc = dc;
-        const numPages = this.dc.numPages;
-        this.totalPages = numPages;
-        if (numPages === 0) {
-          this.ready = true;
-          return;
-        }
-        if (!this.elem) {
-          this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
-          return;
-        }
-        /* choose the first page size as initial size for all pages */
-        this.dc
-          .getPage(1)
-          .then((page) => {
-            const vp = page.getViewport({});
-            this.firstPageOriginWidth = vp.viewBox[2];
-            this.firstPageOriginHeight = vp.viewBox[3];
-            for (let i = 1; i <= numPages; i++) {
-              const p = new PDFPage({
-                pdfjs,
-                pageNum: i,
-                pdfPage: i === 1 ? page : null,
-                width: this.width,
-                height:
-                  (this.width * this.firstPageOriginHeight) /
-                  this.firstPageOriginWidth,
-                isRenderText: this.isRenderText,
-                pageResizeCallback: this._handlePageResize.bind(this),
-                log: this.log,
-              });
-              this.pages.push(p);
-              (this.elem as HTMLElement).appendChild(
-                p.getPageElement() as HTMLElement
-              );
-            }
-            this.ready = true;
-          })
-          .then(() => {
-            // 再次调用then方法是为了延迟渲染的执行，以便上面的页面元素都插入到container中，并且样式得到正确应用
-            // 因为可能产生滚动条，所以重置页面尺寸
-            this.width = (this.pageHelper as HTMLElement).clientWidth;
-            const height =
-              (this.width / this.firstPageOriginWidth) *
-              this.firstPageOriginHeight;
-            const pageSizes: {
-              [key: number]: {
-                w: number;
-                h: number;
-              };
-            } = {};
-            this.pages.forEach((p, pi) => {
-              p.resize(this.width);
-              pageSizes[pi + 1] = {
-                w: this.width,
-                h: height,
-              };
-            });
-            Promise.resolve()
-              .then(() => {
-                this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
-              })
-              .then(() => {
-                this.eventHandler.trigger(
-                  EVENTS.PAGE_RESIZE,
-                  new PVPageResizeEvent(this, pageSizes)
-                );
-              })
-              .then(() => {
-                this._render();
-              });
-          })
-          .catch((err) => {
-            this.log.error("Render first page error", err);
-          });
+    this.dc = await this.pdfTask!.promise;
+    const numPages = this.dc.numPages;
+    if (numPages === 0) {
+      this.ready = true;
+      return;
+    }
+    if (!this.elem) {
+      this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
+      return;
+    }
+    /* choose the first page size as initial size for all pages */
+    const page = await this.dc.getPage(1);
+    const vp = page.getViewport({});
+    this.firstPageOriginWidth = vp.viewBox[2];
+    this.firstPageOriginHeight = vp.viewBox[3];
+    for (let i = 1; i <= numPages; i++) {
+      const p = new PDFPage({
+        pdfjs,
+        dc: this.dc,
+        pageNum: i,
+        pdfPage: i === 1 ? page : null,
+        width: this.width,
+        height:
+          (this.width * this.firstPageOriginHeight) / this.firstPageOriginWidth,
+        isRenderText: this.isRenderText,
+        pageResizeCallback: this._handlePageResize.bind(this),
+      });
+      this.pages.push(p);
+      this.elem!.appendChild(p.getPageElement() as HTMLElement);
+    }
+    this.ready = true;
+
+    // 再次调用then方法是为了延迟渲染的执行，以便上面的页面元素都插入到container中，并且样式得到正确应用
+    // 因为可能产生滚动条，所以重置页面尺寸
+    this.width = (this.pageHelper as HTMLElement).clientWidth;
+    const height =
+      (this.width / this.firstPageOriginWidth) * this.firstPageOriginHeight;
+    const pageSizes: {
+      [key: number]: {
+        w: number;
+        h: number;
+      };
+    } = {};
+    this.pages.forEach((p, pi) => {
+      p.resize(this.width);
+      pageSizes[pi + 1] = {
+        w: this.width,
+        h: height,
+      };
+    });
+    Promise.resolve()
+      .then(() => {
+        this.eventHandler.trigger(EVENTS.LOAD, new PVLoadEvent(this));
       })
-      .catch((err) => {
-        this.log.error("get document fail.", err);
+      .then(() => {
+        this.eventHandler.trigger(
+          EVENTS.PAGE_RESIZE,
+          new PVPageResizeEvent(this, pageSizes)
+        );
+      })
+      .then(() => {
+        this._render();
       });
   }
 
@@ -349,7 +305,7 @@ export class PDFViewer {
   getPDFInfo() {
     return {
       // 总页数
-      totalPages: this.totalPages,
+      totalPages: this.dc?.numPages || 0,
       // 页面间距
       pageGap: PAGE_GAP,
     };
@@ -475,7 +431,7 @@ export class PDFViewer {
               cb(canvas);
             })
             .catch((err) => {
-              this.log.error(
+              this.logger.error(
                 "Render offline page canvas fail.",
                 `page: ${page}, width: ${width}`,
                 err
@@ -484,7 +440,7 @@ export class PDFViewer {
         });
       })
       .catch((err) => {
-        this.log.error(
+        this.logger.error(
           "Render offline page fail.",
           `page: ${page}, width: ${width}`,
           err
@@ -512,7 +468,7 @@ export class PDFViewer {
             h: p.getHeight(),
           };
         });
-        this._render(true);
+        this._render();
         this.eventHandler.trigger(
           EVENTS.PAGE_RESIZE,
           new PVPageResizeEvent(this, pageSizes)
@@ -523,7 +479,6 @@ export class PDFViewer {
   }
 
   destroy() {
-    this.destroyed = true;
     if (this.renderTimer) {
       clearTimeout(this.renderTimer);
     }

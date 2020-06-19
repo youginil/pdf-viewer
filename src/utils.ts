@@ -1,9 +1,13 @@
-export function isUndef(v: any): boolean {
+export function isUndef(v: any): v is null | undefined {
   return v === undefined || v === null;
 }
 
 export function isDef(v: any): boolean {
   return v !== undefined && v !== null;
+}
+
+export function isNull(v: any): v is null {
+  return v === null;
 }
 
 export function extendObject(
@@ -15,109 +19,66 @@ export function extendObject(
   });
 }
 
-enum TimingSliceStatus {
+enum QueueStatus {
   Ready,
   Executing,
   Stopping,
 }
 
+type Task = () => Promise<void>;
+
 export class TaskQueue {
-  private actions: Array<Function>;
+  private queue: Task[];
 
-  private p: Promise<unknown> = Promise.resolve();
+  private status = QueueStatus.Ready;
 
-  private index = 0;
+  private afterStop: Function[] = [];
 
-  private status: TimingSliceStatus = TimingSliceStatus.Ready;
-
-  private afterStop: Array<Function> = [];
-
-  constructor(actions: Array<() => Promise<unknown>> = []) {
-    this.actions = actions;
+  constructor(queue: Task[] = []) {
+    this.queue = queue;
   }
 
-  private exec(): TaskQueue {
-    if (this.status === TimingSliceStatus.Stopping) {
-      console.warn("Fail to execute timing slice because it is stopping.");
-      return this;
+  private exec() {
+    if (this.status === QueueStatus.Stopping) {
+      this.status = QueueStatus.Ready;
+      this.afterStop.forEach((cb) => cb());
+      this.afterStop.length = 0;
+      return;
     }
-    if (this.actions.length === 0 || this.actions.length - 1 < this.index) {
-      console.warn(
-        "Fail to execute timing slice, because it has no more action to execute"
-      );
-      return this;
+    if (this.queue.length === 0) {
+      this.status = QueueStatus.Ready;
+      return;
     }
-    this.status = TimingSliceStatus.Executing;
-    setTimeout(() => {
-      try {
-        this.actions[this.index]();
-      } catch (e) {
-        this.status = TimingSliceStatus.Ready;
-        this.afterStop.forEach((cb) => {
-          Promise.resolve().then(() => {
-            cb();
-          });
-        });
-        this.afterStop.length = 0;
-        throw new Error(e);
-      }
-      setTimeout(() => {
-        this.index += 1;
-        if (this.status === TimingSliceStatus.Stopping) {
-          this.status = TimingSliceStatus.Ready;
-          this.afterStop.forEach((cb) => {
-            cb();
-          });
-          this.afterStop.length = 0;
-        } else if (this.index < this.actions.length) {
-          this.exec();
-        } else {
-          this.status = TimingSliceStatus.Ready;
-        }
-      }, 0);
+    this.status = QueueStatus.Executing;
+    setTimeout(async () => {
+      await this.queue.shift()!();
+      this.exec();
     }, 0);
-    return this;
   }
 
-  add(action: Function): TaskQueue {
-    this.actions.push(action);
+  add(task: Task): TaskQueue {
+    this.queue.push(task);
+    if (this.status === QueueStatus.Ready) {
+      this.exec();
+    }
     return this;
-  }
-
-  start(): TaskQueue {
-    if (this.status === TimingSliceStatus.Executing) {
-      console.warn("Don't call execute duplicately.");
-      return this;
-    }
-    if (this.status === TimingSliceStatus.Stopping) {
-      console.warn("Fail to excute timing slice because it is stopping.");
-      return this;
-    }
-    return this.exec();
   }
 
   stop(): Promise<void> {
-    switch (this.status) {
-      case TimingSliceStatus.Ready:
-        return Promise.resolve();
-      case TimingSliceStatus.Executing:
-      case TimingSliceStatus.Stopping:
-        this.status = TimingSliceStatus.Stopping;
-        return new Promise((resolve) => {
-          this.afterStop.push(resolve);
-        });
-      default:
-        throw new Error("invalid timing slice status");
+    if (this.status === QueueStatus.Ready) {
+      return Promise.resolve();
     }
-  }
-
-  get isStopping(): boolean {
-    return this.status === TimingSliceStatus.Stopping;
+    if (this.status === QueueStatus.Executing || this.status === QueueStatus.Stopping) {
+      this.status = QueueStatus.Stopping;
+      return new Promise((resolve) => {
+        this.afterStop.push(resolve);
+      });
+    }
+    return Promise.resolve();
   }
 
   clear(): TaskQueue {
-    this.actions.length = 0;
-    this.index = 0;
+    this.queue.length = 0;
     return this;
   }
 }

@@ -15,23 +15,19 @@ const eventNames = Object.keys(EVENTS).map((k) => {
 
 export class PVEventHandler {
     private events: Map<string, Array<Function>>;
-    private log: Log;
 
-    constructor(log: Log) {
+    constructor() {
         this.events = new Map<string, Array<Function>>();
         eventNames.forEach((n) => {
             this.events.set(n, []);
         });
-        this.log = log;
     }
 
     addHandler(name: string, handler: Function, callback?: Function) {
         if (!this.events.has(name)) {
-            this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return;
         }
         if (typeof handler !== 'function') {
-            this.log.warn(`Invalid event handler`);
             return;
         }
         (this.events.get(name) as Array<Function>).push(handler);
@@ -42,11 +38,9 @@ export class PVEventHandler {
 
     removeHandler(name: string, handler: Function, callback?: Function) {
         if (!this.events.has(name)) {
-            this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return;
         }
         if (typeof handler !== 'function') {
-            this.log.warn(`Invalid event handler`);
             return;
         }
         const hs = this.events.get(name) as Array<Function>;
@@ -61,7 +55,6 @@ export class PVEventHandler {
 
     hasListener(name: string): boolean {
         if (!this.events.has(name)) {
-            this.log.warn(`Invalid event: ${name}. Available events: ${eventNames.join(', ')}`);
             return false;
         }
         return (this.events.get(name) as Array<Function>).length > 0;

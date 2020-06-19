@@ -10,7 +10,7 @@ enum LOG_LEVEL {
 
 const enablePerformance = 'performance' in window;
 
-function logFn(type: string) {
+function logFn(type: 'info' | 'warn' | 'error') {
     return (console as Console)[type] || function (...messsages: Array<any>) {
         console.log(`${type.toUpperCase()}: `, ...messsages);
     }
@@ -28,12 +28,10 @@ class Log {
     private readonly level: LOG_LEVEL = LOG_LEVEL.INFO;
     private title: string;
     private timing: Map<string, number> = new Map<string, number>();
-    private readonly enableTiming: boolean;
 
-    constructor(title: string, level: LOG_LEVEL, enableTiming: boolean) {
+    constructor(title: string, level: LOG_LEVEL) {
         this.title = title ? `[${title}]` : '';
         this.level = level;
-        this.enableTiming = enableTiming;
     }
 
     info(...messages: Array<any>) {
@@ -55,9 +53,6 @@ class Log {
     }
 
     mark(name: string) {
-        if (!this.enableTiming) {
-            return;
-        }
         if (this.timing.has(name)) {
             warn(this.title, `Mark: ${name} already exist`);
         } else {
@@ -66,9 +61,6 @@ class Log {
     }
 
     measure(name: string, desc: string) {
-        if (!this.enableTiming) {
-            return;
-        }
         if (this.timing.has(name)) {
             info(this.title, '⏱ Time consuming:', desc, `${now() - (this.timing.get(name) as number)}ms`);
         } else {
