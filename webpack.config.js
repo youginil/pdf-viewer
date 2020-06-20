@@ -1,17 +1,21 @@
 const path = require('path');
-const webpack = require('webpack');
+const {CleanWebpackPlugin} = require('clean-webpack-plugin');
 
 module.exports = env => {
   return {
     entry: './src/viewer.ts',
     output: {
-      filename: 'viewer.js',
-      path: path.resolve(__dirname, 'build'),
+      filename: 'index.js',
+      path: path.resolve(__dirname, 'dist'),
       library: 'pv',
-      libraryTarget: "umd"
+      libraryTarget: 'umd'
     },
     mode: 'development',
     devtool: "source-map",
+    node: {
+      fs: 'empty',
+      module: 'empty'
+    },
     resolve: {
       extensions: ['.tsx', '.ts', '.js']
     },
@@ -23,16 +27,12 @@ module.exports = env => {
     },
     devServer: {
       contentBase: path.resolve(__dirname, ''),
-      disableHostCheck: true,
-      filename: 'viewer.js',
     },
     watchOptions: {
       ignored: ['node_modules']
     },
     plugins: [
-      new webpack.DefinePlugin({
-        IS_DEV: JSON.stringify(env.production === 'false')
-      })
+      new CleanWebpackPlugin()
     ]
   };
 };

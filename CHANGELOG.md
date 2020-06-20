@@ -1,5 +1,6 @@
 # Changelog
 ### v2.1.0
+* PDFViewer修改为默认导出，引入时`import PDFViewer from 'web-pdf-viewer'`
 * 去掉PDFViewer的debug选项
 * PDFViewer增加选项logLevel: 1 - debug; 2 - info; 3 - warn; 4 - error
 ### v2.0.1

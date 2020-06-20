@@ -323,8 +323,8 @@ export class PDFPage {
   }
 
   revoke() {
-    this.logger.debug(this.logPrefix, "revoke");
     if (this.status === PageRenderStatus.Rendered) {
+      this.logger.debug(this.logPrefix, "revoke");
       this.pageElement.innerHTML = "";
       this.pageElement.removeAttribute("data-load");
       this.loadingElement.style.display = "block";

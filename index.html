@@ -32,8 +32,7 @@
             overflow-y: auto;
         }
     </style>
-<!--    <script src="./build/viewer.js"></script>-->
-    <script src="viewer.js"></script>
+    <script src="index.js"></script>
 </head>
 <body>
 <div id="page-wrapper">
@@ -66,13 +65,13 @@
 var container = document.getElementById('pv');
 
 function newPDF() {
-  return new pv.PDFViewer({
+  return new pv.default({
     container: container,
     url: '/sample.pdf',
     cmaps: '/cmaps',
     isRenderText: true,
     logTitle: 'sample.pdf',
-    logLevel: 1
+    logLevel: 3
   });
 }
 var pdf = newPDF();

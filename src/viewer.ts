@@ -15,12 +15,7 @@ import { Log, LOG_LEVEL } from "./log";
 import "./style.scss";
 
 const pkg = require("../package.json");
-export const pdfjs = require("pdfjs-dist/build/pdf.js");
-// @ts-ignore
-if (IS_DEV) {
-  const PdfjsWorker = require("worker-loader!pdfjs-dist/build/pdf.worker.js");
-  pdfjs.GlobalWorkerOptions.workerPort = new PdfjsWorker();
-}
+const pdfjs = require('pdfjs-dist/webpack.js');
 
 const PAGE_GAP = 10;
 const DPR = window.devicePixelRatio || 1;
@@ -55,7 +50,7 @@ interface HighlightParams {
   };
 }
 
-export class PDFViewer {
+export default class PDFViewer {
   static version = pkg.version;
   private elem: HTMLDivElement | null = null;
   private isRenderText: boolean = false;

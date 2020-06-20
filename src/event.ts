@@ -1,5 +1,4 @@
-import {Log} from "./log";
-import {PDFViewer} from "./viewer";
+import PDFViewer from "./viewer";
 
 export const EVENTS: {[prop: string]: string} = {
     LOAD: 'load',
