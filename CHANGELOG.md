@@ -1,4 +1,7 @@
 # Changelog
+### v2.1.0
+* 去掉PDFViewer的debug选项
+* PDFViewer增加选项logLevel: 1 - debug; 2 - info; 3 - warn; 4 - error
 ### v2.0.1
 * Lock pdfjs's version（重要升级，避免pdfjs-dist版本升级导致本库无法使用）
 ### v2.0.0

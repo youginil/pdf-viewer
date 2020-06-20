@@ -35,9 +35,9 @@ type Options = {
   gap?: number;
   isRenderText?: boolean;
   logTitle?: string;
+  logLevel?: number;
   containerBackground?: string;
   borderStyle?: string;
-  debug?: boolean;
   pdfjsParams?: {
     [key: string]: any;
   };
@@ -81,19 +81,16 @@ export class PDFViewer {
 
   private logger: Log;
 
-  private debug: boolean;
-
   constructor(options: Options) {
     this.isRenderText = isDef(options.isRenderText)
       ? !!options.isRenderText
       : false;
     this.width = options.container ? options.container.clientWidth : 0;
     const offline = isUndef(options.container);
-    this.debug = isDef(options.debug) ? !!options.debug : false;
 
     this.logger = new Log(
       options.logTitle || "",
-      this.debug ? LOG_LEVEL.INFO : LOG_LEVEL.WARN
+      options.logLevel || LOG_LEVEL.WARN,
     );
 
     this.eventHandler = new PVEventHandler();
@@ -253,6 +250,7 @@ export class PDFViewer {
           (this.width * this.firstPageOriginHeight) / this.firstPageOriginWidth,
         isRenderText: this.isRenderText,
         pageResizeCallback: this._handlePageResize.bind(this),
+        logger: this.logger
       });
       this.pages.push(p);
       this.elem!.appendChild(p.getPageElement() as HTMLElement);

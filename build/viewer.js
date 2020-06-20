@@ -16491,24 +16491,27 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Log = exports.LOG_LEVEL = void 0;
 var LOG_LEVEL;
 (function (LOG_LEVEL) {
-    LOG_LEVEL[LOG_LEVEL["INFO"] = 0] = "INFO";
-    LOG_LEVEL[LOG_LEVEL["WARN"] = 1] = "WARN";
-    LOG_LEVEL[LOG_LEVEL["ERROR"] = 2] = "ERROR";
+    LOG_LEVEL[LOG_LEVEL["DEBUG"] = 1] = "DEBUG";
+    LOG_LEVEL[LOG_LEVEL["INFO"] = 2] = "INFO";
+    LOG_LEVEL[LOG_LEVEL["WARN"] = 3] = "WARN";
+    LOG_LEVEL[LOG_LEVEL["ERROR"] = 4] = "ERROR";
 })(LOG_LEVEL || (LOG_LEVEL = {}));
 exports.LOG_LEVEL = LOG_LEVEL;
-var enablePerformance = 'performance' in window;
+var enablePerformance = "performance" in window;
 function logFn(type) {
-    return console[type] || function () {
-        var messsages = [];
-        for (var _i = 0; _i < arguments.length; _i++) {
-            messsages[_i] = arguments[_i];
-        }
-        console.log.apply(console, __spreadArrays([type.toUpperCase() + ": "], messsages));
-    };
+    return (console[type] ||
+        function () {
+            var messsages = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                messsages[_i] = arguments[_i];
+            }
+            console.log.apply(console, __spreadArrays([type.toUpperCase() + ": "], messsages));
+        });
 }
-var info = logFn('info');
-var warn = logFn('warn');
-var error = logFn('error');
+var debug = logFn("debug");
+var info = logFn("info");
+var warn = logFn("warn");
+var error = logFn("error");
 function now() {
     return enablePerformance ? performance.now() : Date.now();
 }
@@ -16516,15 +16519,24 @@ var Log = /** @class */ (function () {
     function Log(title, level) {
         this.level = LOG_LEVEL.INFO;
         this.timing = new Map();
-        this.title = title ? "[" + title + "]" : '';
+        this.title = title ? "[" + title + "]" : "";
         this.level = level;
     }
+    Log.prototype.debug = function () {
+        var messages = [];
+        for (var _i = 0; _i < arguments.length; _i++) {
+            messages[_i] = arguments[_i];
+        }
+        if (this.level === LOG_LEVEL.DEBUG) {
+            debug.apply(void 0, __spreadArrays([this.title], messages));
+        }
+    };
     Log.prototype.info = function () {
         var messages = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             messages[_i] = arguments[_i];
         }
-        if (this.level >= LOG_LEVEL.INFO) {
+        if (this.level <= LOG_LEVEL.INFO) {
             info.apply(void 0, __spreadArrays([this.title], messages));
         }
     };
@@ -16533,7 +16545,7 @@ var Log = /** @class */ (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             messages[_i] = arguments[_i];
         }
-        if (this.level >= LOG_LEVEL.WARN) {
+        if (this.level <= LOG_LEVEL.WARN) {
             warn.apply(void 0, __spreadArrays([this.title], messages));
         }
     };
@@ -16542,11 +16554,14 @@ var Log = /** @class */ (function () {
         for (var _i = 0; _i < arguments.length; _i++) {
             messages[_i] = arguments[_i];
         }
-        if (this.level >= LOG_LEVEL.ERROR) {
+        if (this.level <= LOG_LEVEL.ERROR) {
             error.apply(void 0, __spreadArrays([this.title], messages));
         }
     };
     Log.prototype.mark = function (name) {
+        if (this.level !== LOG_LEVEL.DEBUG) {
+            return;
+        }
         if (this.timing.has(name)) {
             warn(this.title, "Mark: " + name + " already exist");
         }
@@ -16554,18 +16569,31 @@ var Log = /** @class */ (function () {
             this.timing.set(name, now());
         }
     };
-    Log.prototype.measure = function (name, desc) {
+    Log.prototype.measure = function (name, desc, remove) {
+        if (remove === void 0) { remove = true; }
+        if (this.level !== LOG_LEVEL.DEBUG) {
+            return;
+        }
         if (this.timing.has(name)) {
-            info(this.title, '⏱ Time consuming:', desc, now() - this.timing.get(name) + "ms");
+            info(this.title, name, "⏱ Time consuming:", desc, now() - this.timing.get(name) + "ms");
+            if (remove) {
+                this.timing.delete(name);
+            }
         }
         else {
             warn(this.title, "Mark: " + name + " not exist");
         }
     };
     Log.prototype.removeMark = function (name) {
+        if (this.level !== LOG_LEVEL.DEBUG) {
+            return;
+        }
         this.timing.delete(name);
     };
     Log.prototype.clearMarks = function () {
+        if (this.level !== LOG_LEVEL.DEBUG) {
+            return;
+        }
         this.timing.clear();
     };
     return Log;
@@ -16654,6 +16682,8 @@ var PDFPage = /** @class */ (function () {
         this.loadingElement.innerText = "LOADING...";
         this.loadingElement.className = "pdf-loading";
         this.pageElement.appendChild(this.loadingElement);
+        this.logger = options.logger;
+        this.logPrefix = "P" + options.pageNum + ":";
     }
     PDFPage.prototype.getPageElement = function () {
         return this.pageElement;
@@ -16669,47 +16699,55 @@ var PDFPage = /** @class */ (function () {
     };
     PDFPage.prototype.render = function () {
         return __awaiter(this, void 0, void 0, function () {
-            var _a, viewport, vs, scale, vp, canvas, canvasCtx, canvasRenderTask, p1, p2, textElement, textContentStream, textRenderTask;
+            var _a, viewport, vs, renderMark, scale, vp, canvas, canvasCtx, canvasRenderTask, p1, p2, textElement, textContentStream, textRenderTask;
             var _b;
             var _this = this;
             return __generator(this, function (_c) {
                 switch (_c.label) {
                     case 0:
+                        this.logger.debug(this.logPrefix, "start render page " + this.pageNum);
                         if (this.status === PageRenderStatus.Rendering) {
                             if (this.width === this.renderWidth) {
+                                this.logger.debug(this.logPrefix, "cancel render page because it's is rendering.");
                                 return [2 /*return*/];
                             }
                         }
                         else if (this.status === PageRenderStatus.Rendered) {
                             if (this.width === this.renderWidth) {
+                                this.logger.debug(this.logPrefix, "render canceled on it is done");
                                 return [2 /*return*/];
                             }
                             this.revoke();
                         }
                         this.renderWidth = this.width;
-                        if (!!this.pdfPage) return [3 /*break*/, 2];
+                        if (!this.pdfPage) {
+                            this.logger.debug(this.logPrefix, "get the PDFPageProxy...");
+                        }
+                        if (!(this.originWidth === 0)) return [3 /*break*/, 2];
                         _a = this;
                         return [4 /*yield*/, this.dc.getPage(this.pageNum)];
                     case 1:
                         _a.pdfPage = _c.sent();
+                        this.logger.debug(this.logPrefix, "get the PDFPageProxy successfully");
+                        viewport = this.pdfPage.getViewport();
+                        vs = getViewSize(viewport);
+                        this.originWidth = vs.w;
+                        this.originHeight = vs.h;
+                        if (this.originHeight > 0 &&
+                            this.originWidth / this.originHeight !== this.width / this.height) {
+                            this.height = (this.width * this.originHeight) / this.originWidth;
+                            this.pageResizeCallback((_b = {},
+                                _b[this.pageNum] = {
+                                    w: this.width,
+                                    h: this.height,
+                                },
+                                _b));
+                        }
                         _c.label = 2;
                     case 2:
-                        if (this.originWidth === 0) {
-                            viewport = this.pdfPage.getViewport();
-                            vs = getViewSize(viewport);
-                            this.originWidth = vs.w;
-                            this.originHeight = vs.h;
-                            if (this.originHeight > 0 &&
-                                this.originWidth / this.originHeight !== this.width / this.height) {
-                                this.height = (this.width * this.originHeight) / this.originWidth;
-                                this.pageResizeCallback((_b = {},
-                                    _b[this.pageNum] = {
-                                        w: this.width,
-                                        h: this.height,
-                                    },
-                                    _b));
-                            }
-                        }
+                        this.logger.debug(this.logPrefix, "start rendering...");
+                        renderMark = this.logPrefix + "Render:" + Math.round(Math.random() * 100000);
+                        this.logger.mark(renderMark);
                         scale = (this.scale = this.width / this.originWidth);
                         this.height = this.originHeight * scale;
                         this.pageElement.style.height = this.height + "px";
@@ -16759,19 +16797,19 @@ var PDFPage = /** @class */ (function () {
                     case 3:
                         /* all render done */
                         _c.sent();
-                        if (canvas.width !== this.renderWidth * DPR) {
-                            return [2 /*return*/];
+                        if (canvas.width === this.renderWidth * DPR) {
+                            this.status = PageRenderStatus.Rendered;
+                            this.loadingElement.style.display = "none";
+                            this.pageElement.appendChild(canvas);
+                            if (textElement) {
+                                this.pageElement.appendChild(textElement);
+                            }
+                            this.pageElement.setAttribute("data-load", "true");
+                            this.highlights.forEach(function (hl, id) {
+                                _this._highlight(id);
+                            });
                         }
-                        this.status = PageRenderStatus.Rendered;
-                        this.loadingElement.style.display = 'none';
-                        this.pageElement.appendChild(canvas);
-                        if (textElement) {
-                            this.pageElement.appendChild(textElement);
-                        }
-                        this.pageElement.setAttribute("data-load", "true");
-                        this.highlights.forEach(function (hl, id) {
-                            _this._highlight(id);
-                        });
+                        this.logger.measure(renderMark, "render time", true);
                         return [2 /*return*/];
                 }
             });
@@ -16784,6 +16822,7 @@ var PDFPage = /** @class */ (function () {
         return this.scale * originSize;
     };
     PDFPage.prototype.highlight = function (x, y, w, h, highlightClass, attrs) {
+        this.logger.debug(this.logPrefix, "render highlight. x: " + x + ", y: " + y + ", w: " + w + ", h: " + h);
         var id = Symbol(Date.now() + "_" + Math.random());
         this.highlights.set(id, {
             elem: null,
@@ -16882,10 +16921,11 @@ var PDFPage = /** @class */ (function () {
         return hls;
     };
     PDFPage.prototype.revoke = function () {
+        this.logger.debug(this.logPrefix, "revoke");
         if (this.status === PageRenderStatus.Rendered) {
-            this.pageElement.innerHTML = '';
-            this.pageElement.removeAttribute('data-load');
-            this.loadingElement.style.display = 'block';
+            this.pageElement.innerHTML = "";
+            this.pageElement.removeAttribute("data-load");
+            this.loadingElement.style.display = "block";
             this.pageElement.appendChild(this.loadingElement);
         }
         this.status = PageRenderStatus.Blank;
@@ -17164,8 +17204,7 @@ var PDFViewer = /** @class */ (function () {
             : false;
         this.width = options.container ? options.container.clientWidth : 0;
         var offline = utils_1.isUndef(options.container);
-        this.debug = utils_1.isDef(options.debug) ? !!options.debug : false;
-        this.logger = new log_1.Log(options.logTitle || "", this.debug ? log_1.LOG_LEVEL.INFO : log_1.LOG_LEVEL.WARN);
+        this.logger = new log_1.Log(options.logTitle || "", options.logLevel || log_1.LOG_LEVEL.WARN);
         this.eventHandler = new event_1.PVEventHandler();
         if (!offline) {
             this.elem = document.createElement("div");
@@ -17328,6 +17367,7 @@ var PDFViewer = /** @class */ (function () {
                                 height: (this.width * this.firstPageOriginHeight) / this.firstPageOriginWidth,
                                 isRenderText: this.isRenderText,
                                 pageResizeCallback: this._handlePageResize.bind(this),
+                                logger: this.logger
                             });
                             this.pages.push(p);
                             this.elem.appendChild(p.getPageElement());

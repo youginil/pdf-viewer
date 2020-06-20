@@ -27,6 +27,7 @@ type PDFPageOptions = {
   height: number;
   isRenderText: boolean;
   pageResizeCallback: Function;
+  logger: Log;
 };
 
 export class PDFPage {
@@ -50,6 +51,9 @@ export class PDFPage {
   private status = PageRenderStatus.Blank;
   private renderWidth = 0;
 
+  private logger: Log;
+  private logPrefix: string;
+
   constructor(options: PDFPageOptions) {
     this.pdfjs = options.pdfjs;
     this.dc = options.dc;
@@ -66,6 +70,8 @@ export class PDFPage {
     this.loadingElement.innerText = "LOADING...";
     this.loadingElement.className = "pdf-loading";
     this.pageElement.appendChild(this.loadingElement);
+    this.logger = options.logger;
+    this.logPrefix = `P${options.pageNum}:`;
   }
 
   getPageElement(): HTMLElement | null {
@@ -83,21 +89,29 @@ export class PDFPage {
   }
 
   async render() {
+    this.logger.debug(this.logPrefix, `start render page ${this.pageNum}`);
     if (this.status === PageRenderStatus.Rendering) {
       if (this.width === this.renderWidth) {
+        this.logger.debug(
+          this.logPrefix,
+          `cancel render page because it's is rendering.`
+        );
         return;
       }
     } else if (this.status === PageRenderStatus.Rendered) {
       if (this.width === this.renderWidth) {
+        this.logger.debug(this.logPrefix, "render canceled on it is done");
         return;
       }
       this.revoke();
     }
     this.renderWidth = this.width;
     if (!this.pdfPage) {
-      this.pdfPage = await this.dc.getPage(this.pageNum);
+      this.logger.debug(this.logPrefix, "get the PDFPageProxy...");
     }
     if (this.originWidth === 0) {
+      this.pdfPage = await this.dc.getPage(this.pageNum);
+      this.logger.debug(this.logPrefix, "get the PDFPageProxy successfully");
       const viewport = (this.pdfPage as PDFPageProxy).getViewport();
       const vs = getViewSize(viewport);
       this.originWidth = vs.w;
@@ -115,6 +129,11 @@ export class PDFPage {
         });
       }
     }
+    this.logger.debug(this.logPrefix, "start rendering...");
+    const renderMark = `${this.logPrefix}Render:${Math.round(
+      Math.random() * 100000
+    )}`;
+    this.logger.mark(renderMark);
     const scale = (this.scale = this.width / this.originWidth);
     this.height = this.originHeight * scale;
     this.pageElement.style.height = this.height + "px";
@@ -137,7 +156,7 @@ export class PDFPage {
     const p1 = canvasRenderTask.promise;
     /* render text layer */
     let p2 = Promise.resolve();
-    let textElement: HTMLElement | null = null
+    let textElement: HTMLElement | null = null;
     if (this.isRenderText) {
       textElement = document.createElement("div");
       textElement.style.position = "absolute";
@@ -148,12 +167,12 @@ export class PDFPage {
       textElement.style.height = this.height + "px";
       const textContentStream = (this
         .pdfPage as PDFPageProxy).streamTextContent({
-          normalizeWhitespace: true,
-        });
+        normalizeWhitespace: true,
+      });
       const textRenderTask = this.pdfjs.renderTextLayer({
         textContent: null,
         textContentStream,
-        container:textElement,
+        container: textElement,
         viewport: (this.pdfPage as PDFPageProxy).getViewport({ scale }),
         textDivs: [],
         textContentItemsStr: [],
@@ -163,19 +182,19 @@ export class PDFPage {
     }
     /* all render done */
     await Promise.all([p1, p2]);
-    if (canvas.width !== this.renderWidth * DPR) {
-      return;
+    if (canvas.width === this.renderWidth * DPR) {
+      this.status = PageRenderStatus.Rendered;
+      this.loadingElement.style.display = "none";
+      this.pageElement.appendChild(canvas);
+      if (textElement) {
+        this.pageElement.appendChild(textElement);
+      }
+      this.pageElement.setAttribute("data-load", "true");
+      this.highlights.forEach((hl, id) => {
+        this._highlight(id);
+      });
     }
-    this.status = PageRenderStatus.Rendered;
-    this.loadingElement.style.display = 'none';
-    this.pageElement.appendChild(canvas);
-    if (textElement) {
-      this.pageElement.appendChild(textElement);
-    }
-    this.pageElement.setAttribute("data-load", "true");
-    this.highlights.forEach((hl, id) => {
-      this._highlight(id);
-    });
+    this.logger.measure(renderMark, "render time", true);
   }
 
   getHeight() {
@@ -194,6 +213,10 @@ export class PDFPage {
     highlightClass: string,
     attrs: { [key: string]: string }
   ): symbol {
+    this.logger.debug(
+      this.logPrefix,
+      `render highlight. x: ${x}, y: ${y}, w: ${w}, h: ${h}`
+    );
     let id = Symbol(Date.now() + "_" + Math.random());
     this.highlights.set(id, {
       elem: null,
@@ -285,10 +308,10 @@ export class PDFPage {
       if (
         (elem as HTMLElement).offsetLeft <= x &&
         (elem as HTMLElement).offsetLeft + (elem as HTMLElement).offsetWidth >=
-        x &&
+          x &&
         (elem as HTMLElement).offsetTop <= y &&
         (elem as HTMLElement).offsetTop + (elem as HTMLElement).offsetHeight >=
-        y
+          y
       ) {
         hls.push({
           page: this.pageNum,
@@ -300,10 +323,11 @@ export class PDFPage {
   }
 
   revoke() {
+    this.logger.debug(this.logPrefix, "revoke");
     if (this.status === PageRenderStatus.Rendered) {
-      this.pageElement.innerHTML = '';
-      this.pageElement.removeAttribute('data-load');
-      this.loadingElement.style.display = 'block';
+      this.pageElement.innerHTML = "";
+      this.pageElement.removeAttribute("data-load");
+      this.loadingElement.style.display = "block";
       this.pageElement.appendChild(this.loadingElement);
     }
     this.status = PageRenderStatus.Blank;
