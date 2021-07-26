@@ -1,9 +1,9 @@
 {
   "name": "web-pdf-viewer",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "pdf viewer for web base on pdf.js",
   "main": "./dist/index.js",
-  "typings": "./lib/viewer.d.ts",
+  "typings": "./dist/web-pdf-viewer.d.ts",
   "scripts": {
     "build": "webpack --env production; api-extractor run --local --verbose",
     "dev": "webpack serve"

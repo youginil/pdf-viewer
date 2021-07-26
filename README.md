@@ -24,7 +24,7 @@ property            |type                      |required  |description
 --------------------|--------------------------|----------|-------------------
 container           |HTMLElement               |N         |Container
 url                 |string                    |N         |pdf file url
-data                |TypedArray|Array|String   |N         |pdf binary data
+data                |TypedArray,Array,String   |N         |pdf binary data
 file                |File                      |N         |Local file
 gap                 |number                    |N         |Gap between container and content
 cmaps               |string                    |N         |Chars url
