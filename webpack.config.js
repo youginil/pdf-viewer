@@ -1,38 +1,39 @@
 const path = require('path');
-const {CleanWebpackPlugin} = require('clean-webpack-plugin');
+const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
-module.exports = env => {
+module.exports = (env) => {
+  const prdPlugins = env.production ? [new CleanWebpackPlugin()] : [];
   return {
     entry: './src/viewer.ts',
     output: {
       filename: 'index.js',
       path: path.resolve(__dirname, 'dist'),
-      library: 'pv',
-      libraryTarget: 'umd'
+      library: {
+        name: 'PDFViewer',
+        type: 'umd',
+        export: 'default',
+      },
     },
     mode: 'development',
-    devtool: "source-map",
-    node: {
-      fs: 'empty',
-      module: 'empty'
-    },
+    devtool: 'source-map',
+    node: {},
     resolve: {
-      extensions: ['.tsx', '.ts', '.js']
+      extensions: ['.tsx', '.ts', '.js'],
     },
     module: {
       rules: [
-        {test: /\.tsx?$/, use: ["ts-loader"], exclude: /node_modules/},
-        {test: /\.scss$/, use: ["style-loader", "css-loader", "sass-loader"]}
-      ]
+        { test: /\.tsx?$/, use: ['ts-loader'], exclude: /node_modules/ },
+        { test: /\.scss$/, use: ['style-loader', 'css-loader', 'sass-loader'] },
+      ],
     },
     devServer: {
       contentBase: path.resolve(__dirname, ''),
+      port: 3000,
+      injectClient: false,
     },
     watchOptions: {
-      ignored: ['node_modules']
+      ignored: ['node_modules'],
     },
-    plugins: [
-      new CleanWebpackPlugin()
-    ]
+    plugins: [...prdPlugins],
   };
 };

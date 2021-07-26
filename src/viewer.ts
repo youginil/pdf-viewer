@@ -6,25 +6,33 @@ import {
   PVPageChangeEvent,
   PVPageResizeEvent,
   PVScrollEvent,
-} from "./event";
-import { getViewSize, PDFPage } from "./page";
-import { getEventPath } from "./dom";
-import { animate, Animation } from "./animtion";
-import { extendObject, isDef, isUndef, TaskQueue } from "./utils";
-import { Log, LOG_LEVEL } from "./log";
-import "./style.scss";
+} from './event';
+import { getViewSize, PDFPage } from './page';
+import { getEventPath } from './dom';
+import { animate, Animation } from './animtion';
+import { extendObject, isDef, isUndef, TaskQueue } from './utils';
+import { Log, LOG_LEVEL } from './log';
+import './style.scss';
 
-const pkg = require("../package.json");
-const pdfjs = require('pdfjs-dist/webpack.js');
+const pkg = require('../package.json');
+import { getDocument } from 'pdfjs-dist';
+import {
+  DocumentInitParameters,
+  PDFDocumentLoadingTask,
+  PDFPageProxy,
+  PDFDocumentProxy,
+  TypedArray,
+} from 'pdfjs-dist/types/display/api';
+require('pdfjs-dist/webpack.js');
 
 const PAGE_GAP = 10;
 const DPR = window.devicePixelRatio || 1;
-const CLASS_NAME = "pdf-viewer-666";
+const CLASS_NAME = 'pdf-viewer-666';
 
 type Options = {
   container?: HTMLElement;
   url?: string;
-  data?: [Uint8Array];
+  data?: TypedArray;
   file?: File;
   cmaps?: string;
   gap?: number;
@@ -50,6 +58,9 @@ interface HighlightParams {
   };
 }
 
+/**
+ * @public
+ */
 export default class PDFViewer {
   static version = pkg.version;
   private elem: HTMLDivElement | null = null;
@@ -72,7 +83,7 @@ export default class PDFViewer {
 
   private ready: boolean = false;
   // 在container中插入一个辅助元素，用来正确获取页面的宽度（因为滚动条的原因）(离线无效)
-  private pageHelper: HTMLElement | null = document.createElement("div");
+  private pageHelper: HTMLElement | null = document.createElement('div');
 
   private logger: Log;
 
@@ -84,43 +95,43 @@ export default class PDFViewer {
     const offline = isUndef(options.container);
 
     this.logger = new Log(
-      options.logTitle || "",
-      options.logLevel || LOG_LEVEL.WARN,
+      options.logTitle || '',
+      options.logLevel || LOG_LEVEL.WARN
     );
 
     this.eventHandler = new PVEventHandler();
 
     if (!offline) {
-      this.elem = document.createElement("div");
+      this.elem = document.createElement('div');
       this.elem.className = CLASS_NAME;
       this.elem.style.background = isDef(options.containerBackground)
         ? (options.containerBackground as string)
-        : "#808080";
+        : '#808080';
       this.elem.style.border = isDef(options.borderStyle)
         ? (options.borderStyle as string)
-        : "none";
-      this.elem.style.overflow = "auto";
+        : 'none';
+      this.elem.style.overflow = 'auto';
       this.elem.style.padding = `0 ${isDef(options.gap) ? options.gap : 10}px`;
       this.elem.appendChild(this.pageHelper as HTMLElement);
-      this.elem.addEventListener("scroll", onscroll);
-      this.elem.addEventListener("click", onclick);
+      this.elem.addEventListener('scroll', onscroll);
+      this.elem.addEventListener('click', onclick);
       (options.container as HTMLElement).appendChild(this.elem);
       // @ts-ignore
-      this.elem["pv"] = this;
+      this.elem['pv'] = this;
     }
 
     let cfg: DocumentInitParameters = {
       cMapUrl: options.cmaps,
       cMapPacked: true,
     };
-    if ("pdfjsParams" in options) {
+    if ('pdfjsParams' in options) {
       extendObject(cfg, options.pdfjsParams || {});
     }
     if (isDef(options.url)) {
-      cfg["url"] = options.url;
+      cfg['url'] = options.url;
       this._getDocument(cfg);
     } else if (isDef(options.data)) {
-      cfg["data"] = options.data;
+      cfg['data'] = options.data;
       this._getDocument(cfg);
     } else if (isDef(options.file)) {
       if (!(options.file instanceof File)) {
@@ -129,7 +140,7 @@ export default class PDFViewer {
       const fr = new FileReader();
       fr.readAsArrayBuffer(options.file as File);
       fr.onload = () => {
-        cfg["data"] = new Uint8Array(fr.result as ArrayBuffer);
+        cfg['data'] = new Uint8Array(fr.result as ArrayBuffer);
         this._getDocument(cfg);
       };
       fr.onerror = () => {
@@ -218,7 +229,7 @@ export default class PDFViewer {
   }
 
   private async _getDocument(cfg: DocumentInitParameters) {
-    this.pdfTask = pdfjs.getDocument(cfg);
+    this.pdfTask = getDocument(cfg);
     this.dc = await this.pdfTask!.promise;
     const numPages = this.dc.numPages;
     if (numPages === 0) {
@@ -231,12 +242,11 @@ export default class PDFViewer {
     }
     /* choose the first page size as initial size for all pages */
     const page = await this.dc.getPage(1);
-    const vp = page.getViewport({});
+    const vp = page.getViewport();
     this.firstPageOriginWidth = vp.viewBox[2];
     this.firstPageOriginHeight = vp.viewBox[3];
     for (let i = 1; i <= numPages; i++) {
       const p = new PDFPage({
-        pdfjs,
         dc: this.dc,
         pageNum: i,
         pdfPage: i === 1 ? page : null,
@@ -245,7 +255,7 @@ export default class PDFViewer {
           (this.width * this.firstPageOriginHeight) / this.firstPageOriginWidth,
         isRenderText: this.isRenderText,
         pageResizeCallback: this._handlePageResize.bind(this),
-        logger: this.logger
+        logger: this.logger,
       });
       this.pages.push(p);
       this.elem!.appendChild(p.getPageElement() as HTMLElement);
@@ -345,7 +355,7 @@ export default class PDFViewer {
       params.y,
       params.w,
       params.h,
-      params.highlightClass ?? "pdf-highlight",
+      params.highlightClass ?? 'pdf-highlight',
       params.attrs ?? {}
     );
   }
@@ -374,7 +384,7 @@ export default class PDFViewer {
   highlightFocus(
     page: number,
     id: symbol,
-    highlightFocusClass = "pdf-highlight-focus"
+    highlightFocusClass = 'pdf-highlight-focus'
   ): PDFViewer {
     if (!this.ready || !this.elem) {
       return this;
@@ -411,21 +421,21 @@ export default class PDFViewer {
           const height = scale * vs.h;
           const vp = pdfPage.getViewport({ scale });
           /* render canvas layer */
-          const canvas = document.createElement("canvas");
-          const canvasCtx = canvas.getContext("2d");
+          const canvas = document.createElement('canvas');
+          const canvasCtx = canvas.getContext('2d');
           canvas.width = width;
           canvas.height = height;
           const canvasRenderTask = pdfPage.render({
-            canvasContext: canvasCtx,
+            canvasContext: canvasCtx as Object,
             viewport: vp,
           });
           canvasRenderTask.promise
             .then(() => {
               cb(canvas);
             })
-            .catch((err) => {
+            .catch((err: unknown) => {
               this.logger.error(
-                "Render offline page canvas fail.",
+                'Render offline page canvas fail.',
                 `page: ${page}, width: ${width}`,
                 err
               );
@@ -434,7 +444,7 @@ export default class PDFViewer {
       })
       .catch((err) => {
         this.logger.error(
-          "Render offline page fail.",
+          'Render offline page fail.',
           `page: ${page}, width: ${width}`,
           err
         );
@@ -484,13 +494,13 @@ export default class PDFViewer {
     if (this.elem) {
       (this.pageHelper as HTMLElement).remove();
       this.pageHelper = null;
-      this.elem.removeEventListener("scroll", onscroll);
-      this.elem.removeEventListener("click", onclick);
+      this.elem.removeEventListener('scroll', onscroll);
+      this.elem.removeEventListener('click', onclick);
       this.elem.remove();
       this.elem = null;
     }
     // 销毁pdf.js相关的变量
-    (this.dc as PDFDocumentProxy).destroy();
+    this.dc?.destroy();
     this.dc = null;
     this.pdfTask = null;
   }
@@ -504,13 +514,13 @@ function onclick(e: MouseEvent) {
   if (!pvElem) {
     return;
   }
-  const pv = pvElem["pv"];
+  const pv = pvElem['pv'];
   if (!pv.eventHandler.hasListener(EVENTS.HIGHLIGHT_CLICK)) {
     return;
   }
   if (
     eventPath.some(
-      (elem) => elem instanceof HTMLElement && elem.hasAttribute("data-page")
+      (elem) => elem instanceof HTMLElement && elem.hasAttribute('data-page')
     )
   ) {
     let x = e.offsetX;
@@ -518,9 +528,9 @@ function onclick(e: MouseEvent) {
     let page = 0;
     for (let i = 0; i < eventPath.length; i++) {
       const elem = eventPath[i];
-      if (elem instanceof HTMLElement && elem.hasAttribute("data-page")) {
+      if (elem instanceof HTMLElement && elem.hasAttribute('data-page')) {
         // @ts-ignore
-        page = +elem.getAttribute("data-page");
+        page = +elem.getAttribute('data-page');
         break;
       } else {
         x += elem.offsetLeft;
@@ -540,7 +550,7 @@ function onclick(e: MouseEvent) {
 function onscroll(e: Event) {
   const pvElem = e.target as HTMLElement;
   // @ts-ignore
-  const pv = pvElem["pv"];
+  const pv = pvElem['pv'];
   if (pv.renderTimer) {
     clearTimeout(pv.renderTimer);
     pv.renderTimer = null;
@@ -550,6 +560,6 @@ function onscroll(e: Event) {
   }, 50);
   pv.eventHandler.trigger(
     EVENTS.SCROLL,
-    new PVScrollEvent(pv, pvElem["scrollTop"], pvElem["scrollLeft"])
+    new PVScrollEvent(pv, pvElem['scrollTop'], pvElem['scrollLeft'])
   );
 }

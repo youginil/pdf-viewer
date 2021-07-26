@@ -9,9 +9,9 @@ enum LOG_LEVEL {
   ERROR = 4,
 }
 
-const enablePerformance = "performance" in window;
+const enablePerformance = 'performance' in window;
 
-function logFn(type: "debug" | "info" | "warn" | "error") {
+function logFn(type: 'debug' | 'info' | 'warn' | 'error') {
   return (
     (console as Console)[type] ||
     function (...messsages: Array<any>) {
@@ -20,10 +20,10 @@ function logFn(type: "debug" | "info" | "warn" | "error") {
   );
 }
 
-const debug = logFn("debug");
-const info = logFn("info");
-const warn = logFn("warn");
-const error = logFn("error");
+const debug = logFn('debug');
+const info = logFn('info');
+const warn = logFn('warn');
+const error = logFn('error');
 
 function now() {
   return enablePerformance ? performance.now() : Date.now();
@@ -35,7 +35,7 @@ class Log {
   private timing: Map<string, number> = new Map<string, number>();
 
   constructor(title: string, level: LOG_LEVEL) {
-    this.title = title ? `[${title}]` : "";
+    this.title = title ? `[${title}]` : '';
     this.level = level;
   }
 
@@ -82,7 +82,7 @@ class Log {
       info(
         this.title,
         name,
-        "⏱ Time consuming:",
+        '⏱ Time consuming:',
         desc,
         `${now() - (this.timing.get(name) as number)}ms`
       );

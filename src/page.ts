@@ -1,4 +1,7 @@
-import { Log } from "./log";
+import { renderTextLayer } from 'pdfjs-dist';
+import { PDFDocumentProxy, PDFPageProxy } from 'pdfjs-dist/types/display/api';
+import { PageViewport } from 'pdfjs-dist/types/display/display_utils';
+import { Log } from './log';
 
 const DPR = window.devicePixelRatio || 1;
 
@@ -19,7 +22,6 @@ type Highlight = {
 };
 
 type PDFPageOptions = {
-  pdfjs: any;
   dc: PDFDocumentProxy;
   pageNum: number;
   pdfPage: PDFPageProxy | null;
@@ -31,7 +33,6 @@ type PDFPageOptions = {
 };
 
 export class PDFPage {
-  private pdfjs: any;
   private dc: PDFDocumentProxy;
   private pageNum: number;
   private pdfPage: PDFPageProxy | null;
@@ -43,8 +44,8 @@ export class PDFPage {
   private isRenderText: boolean;
   private pageResizeCallback: Function;
 
-  private pageElement = document.createElement("div");
-  private loadingElement: HTMLElement = document.createElement("div");
+  private pageElement = document.createElement('div');
+  private loadingElement: HTMLElement = document.createElement('div');
 
   private highlights: Map<symbol, Highlight> = new Map<symbol, Highlight>();
 
@@ -55,7 +56,6 @@ export class PDFPage {
   private logPrefix: string;
 
   constructor(options: PDFPageOptions) {
-    this.pdfjs = options.pdfjs;
     this.dc = options.dc;
     this.pageNum = options.pageNum;
     this.pdfPage = options.pdfPage;
@@ -63,12 +63,12 @@ export class PDFPage {
     this.height = options.height;
     this.isRenderText = options.isRenderText;
     this.pageResizeCallback = options.pageResizeCallback;
-    this.pageElement.style.width = options.width + "px";
-    this.pageElement.style.height = options.height + "px";
-    this.pageElement.className = "pdf-page";
-    this.pageElement.setAttribute("data-page", "" + this.pageNum);
-    this.loadingElement.innerText = "LOADING...";
-    this.loadingElement.className = "pdf-loading";
+    this.pageElement.style.width = options.width + 'px';
+    this.pageElement.style.height = options.height + 'px';
+    this.pageElement.className = 'pdf-page';
+    this.pageElement.setAttribute('data-page', '' + this.pageNum);
+    this.loadingElement.innerText = 'LOADING...';
+    this.loadingElement.className = 'pdf-loading';
     this.pageElement.appendChild(this.loadingElement);
     this.logger = options.logger;
     this.logPrefix = `P${options.pageNum}:`;
@@ -100,19 +100,19 @@ export class PDFPage {
       }
     } else if (this.status === PageRenderStatus.Rendered) {
       if (this.width === this.renderWidth) {
-        this.logger.debug(this.logPrefix, "render canceled on it is done");
+        this.logger.debug(this.logPrefix, 'render canceled on it is done');
         return;
       }
       this.revoke();
     }
     this.renderWidth = this.width;
     if (!this.pdfPage) {
-      this.logger.debug(this.logPrefix, "get the PDFPageProxy...");
+      this.logger.debug(this.logPrefix, 'get the PDFPageProxy...');
     }
     if (this.originWidth === 0) {
       this.pdfPage = await this.dc.getPage(this.pageNum);
-      this.logger.debug(this.logPrefix, "get the PDFPageProxy successfully");
-      const viewport = (this.pdfPage as PDFPageProxy).getViewport();
+      this.logger.debug(this.logPrefix, 'get the PDFPageProxy successfully');
+      const viewport = this.pdfPage.getViewport();
       const vs = getViewSize(viewport);
       this.originWidth = vs.w;
       this.originHeight = vs.h;
@@ -129,72 +129,72 @@ export class PDFPage {
         });
       }
     }
-    this.logger.debug(this.logPrefix, "start rendering...");
+    this.logger.debug(this.logPrefix, 'start rendering...');
     const renderMark = `${this.logPrefix}Render:${Math.round(
       Math.random() * 100000
     )}`;
     this.logger.mark(renderMark);
     const scale = (this.scale = this.width / this.originWidth);
     this.height = this.originHeight * scale;
-    this.pageElement.style.height = this.height + "px";
+    this.pageElement.style.height = this.height + 'px';
     const vp = (this.pdfPage as PDFPageProxy).getViewport({
       scale: scale * DPR,
     });
     /* render canvas layer */
-    const canvas = document.createElement("canvas");
-    canvas.style.position = "absolute";
-    canvas.style.left = "0";
-    canvas.style.top = "0";
-    canvas.style.width = this.width + "px";
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.left = '0';
+    canvas.style.top = '0';
+    canvas.style.width = this.width + 'px';
     canvas.width = this.width * DPR;
     canvas.height = this.height * DPR;
-    const canvasCtx = canvas.getContext("2d");
-    const canvasRenderTask = (this.pdfPage as PDFPageProxy).render({
-      canvasContext: canvasCtx,
+    const canvasCtx = canvas.getContext('2d');
+    const canvasRenderTask = this.pdfPage!.render({
+      canvasContext: canvasCtx as Object,
       viewport: vp,
     });
-    const p1 = canvasRenderTask.promise;
+    const p1 = canvasRenderTask?.promise;
     /* render text layer */
     let p2 = Promise.resolve();
     let textElement: HTMLElement | null = null;
     if (this.isRenderText) {
-      textElement = document.createElement("div");
-      textElement.style.position = "absolute";
-      textElement.style.top = "0";
-      textElement.style.left = "0";
-      textElement.className = "text-layer";
-      textElement.style.width = this.width + "px";
-      textElement.style.height = this.height + "px";
-      const textContentStream = (this
-        .pdfPage as PDFPageProxy).streamTextContent({
+      textElement = document.createElement('div');
+      textElement.style.position = 'absolute';
+      textElement.style.top = '0';
+      textElement.style.left = '0';
+      textElement.className = 'text-layer';
+      textElement.style.width = this.width + 'px';
+      textElement.style.height = this.height + 'px';
+      const textContentStream = this.pdfPage!.streamTextContent({
         normalizeWhitespace: true,
+        disableCombineTextItems: false
       });
-      const textRenderTask = this.pdfjs.renderTextLayer({
-        textContent: null,
+      const textRenderTask = renderTextLayer({
+        textContent: undefined,
         textContentStream,
         container: textElement,
-        viewport: (this.pdfPage as PDFPageProxy).getViewport({ scale }),
+        viewport: this.pdfPage!.getViewport({ scale }),
         textDivs: [],
         textContentItemsStr: [],
         enhanceTextSelection: false,
-      }) as RenderTask;
+      });
       p2 = textRenderTask.promise;
     }
     /* all render done */
     await Promise.all([p1, p2]);
     if (canvas.width === this.renderWidth * DPR) {
       this.status = PageRenderStatus.Rendered;
-      this.loadingElement.style.display = "none";
+      this.loadingElement.style.display = 'none';
       this.pageElement.appendChild(canvas);
       if (textElement) {
         this.pageElement.appendChild(textElement);
       }
-      this.pageElement.setAttribute("data-load", "true");
+      this.pageElement.setAttribute('data-load', 'true');
       this.highlights.forEach((hl, id) => {
         this._highlight(id);
       });
     }
-    this.logger.measure(renderMark, "render time", true);
+    this.logger.measure(renderMark, 'render time', true);
   }
 
   getHeight() {
@@ -217,12 +217,12 @@ export class PDFPage {
       this.logPrefix,
       `render highlight. x: ${x}, y: ${y}, w: ${w}, h: ${h}`
     );
-    let id = Symbol(Date.now() + "_" + Math.random());
+    let id = Symbol(Date.now() + '_' + Math.random());
     this.highlights.set(id, {
       elem: null,
       pos: [x, y, w, h],
       highlightClass,
-      highlightFocusClass: "",
+      highlightFocusClass: '',
       attrs: attrs,
     });
     if (this.status === PageRenderStatus.Rendered) {
@@ -240,12 +240,12 @@ export class PDFPage {
       return;
     }
     const pos = hd.pos;
-    hd.elem = document.createElement("div");
+    hd.elem = document.createElement('div');
     hd.elem.className = hd.highlightClass;
-    hd.elem.setAttribute("pdf-highlight", "true");
-    hd.elem.style.display = "inline-block";
-    hd.elem.style.position = "absolute";
-    hd.elem.style.zIndex = "1";
+    hd.elem.setAttribute('pdf-highlight', 'true');
+    hd.elem.style.display = 'inline-block';
+    hd.elem.style.position = 'absolute';
+    hd.elem.style.zIndex = '1';
     const scale = this.scale;
     hd.elem.style.width = `${Math.floor(pos[2] * scale)}px`;
     hd.elem.style.height = `${Math.floor(pos[3] * scale)}px`;
@@ -324,10 +324,10 @@ export class PDFPage {
 
   revoke() {
     if (this.status === PageRenderStatus.Rendered) {
-      this.logger.debug(this.logPrefix, "revoke");
-      this.pageElement.innerHTML = "";
-      this.pageElement.removeAttribute("data-load");
-      this.loadingElement.style.display = "block";
+      this.logger.debug(this.logPrefix, 'revoke');
+      this.pageElement.innerHTML = '';
+      this.pageElement.removeAttribute('data-load');
+      this.loadingElement.style.display = 'block';
       this.pageElement.appendChild(this.loadingElement);
     }
     this.status = PageRenderStatus.Blank;
@@ -337,7 +337,6 @@ export class PDFPage {
     this.pageElement.remove();
     if (this.pdfPage) {
       this.pdfPage.cleanup();
-      this.pdfPage = null;
     }
   }
 }

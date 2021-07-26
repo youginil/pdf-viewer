@@ -68,7 +68,10 @@ export class TaskQueue {
     if (this.status === QueueStatus.Ready) {
       return Promise.resolve();
     }
-    if (this.status === QueueStatus.Executing || this.status === QueueStatus.Stopping) {
+    if (
+      this.status === QueueStatus.Executing ||
+      this.status === QueueStatus.Stopping
+    ) {
       this.status = QueueStatus.Stopping;
       return new Promise((resolve) => {
         this.afterStop.push(resolve);
