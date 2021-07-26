@@ -7,7 +7,7 @@ PDF viewer for web base on [pdf.js](https://github.com/mozilla/pdf.js).
 
 ### Usage
 ###### Step1
-copy `node_modules/web-pdf-viewer/cmaps` to public directory
+Copy `node_modules/web-pdf-viewer/cmaps` to public directory
 ###### Step2
 ````
 import PDFViewer from 'web-pdf-viewer';
@@ -35,7 +35,7 @@ logTitle            |string                    |N         |Log title for differe
 pdfjsParams         |Object                    |N         |Same as parameter of `pdfjsLib.getDocument`
 
 
-### 接口
+### Method
 * `PDFViewer.prototype.addEventListener(eventName: string, handler: Function)`Add event listener
 * `PDFViewer.prototype.removeEventListener(eventName: string, handler: Function)`Remove event listener.
 * `PDFViewer.prototype.getPDFInfo(): Object`PDF infomation
@@ -48,7 +48,7 @@ pdfjsParams         |Object                    |N         |Same as parameter of 
 * `PDFViewer.prototype.resize(width?: number)`Resize page width.
 * `PDFViewer.prototype.destroy()`Destroy instance
 
-### 事件
+### Event
 > online - Rendered on page<br>
 > offline - Rendered offline<br>
 > both - Both online and offline
