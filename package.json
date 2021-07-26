@@ -1,6 +1,6 @@
 {
   "name": "web-pdf-viewer",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "pdf viewer for web base on pdf.js",
   "main": "./dist/index.js",
   "typings": "./dist/web-pdf-viewer.d.ts",
